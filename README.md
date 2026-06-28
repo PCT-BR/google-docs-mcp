@@ -94,6 +94,7 @@ Tools across Google Docs, Sheets, and Drive:
 | `deleteRange`                 | Remove content by index range                     |
 | `modifyText`                  | Replace, prepend, or transform text in a document |
 | `findAndReplace`              | Find and replace text across a document           |
+| `findElement`                 | Locate text occurrences (with index ranges) or list paragraphs/tables |
 | `listTabs`                    | List all tabs in a multi-tab document             |
 | `addTab`                      | Add a new tab to a document                       |
 | `renameTab`                   | Rename a document tab                             |

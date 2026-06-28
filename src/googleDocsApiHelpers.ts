@@ -401,6 +401,174 @@ export async function findTextRange(
   }
 }
 
+// --- Element Finder ---
+// Locates elements in a document. Supports two modes (combinable):
+//  - textQuery: returns the document index range of every non-overlapping
+//    occurrence of the text — usable as a deleteRange / buildUpdateTextStyleRequest
+//    range, or its startIndex as an insertText location. Searches the
+//    first tab only; text inside table cells IS searched.
+//  - elementType ('paragraph' | 'table'): lists those top-level structural
+//    elements with their ranges and a short text preview. Paragraph listing is
+//    top-level body only — it does NOT descend into table cells.
+export interface FoundElement {
+    type: 'text' | 'paragraph' | 'table';
+    startIndex: number;
+    endIndex: number;
+    instance?: number; // 1-based occurrence number, for text matches
+    text?: string;     // matched text or a preview of the element
+}
+
+export async function findElements(
+    docs: Docs,
+    documentId: string,
+    options: { textQuery?: string; elementType?: 'paragraph' | 'table' | 'list' | 'image' }
+): Promise<FoundElement[]> {
+    const { textQuery, elementType } = options;
+    if (!textQuery && !elementType) {
+        throw new UserError('findElement requires at least one of "textQuery" or "elementType".');
+    }
+
+    let res;
+    try {
+        res = await docs.documents.get({
+            documentId,
+            fields: 'body(content(startIndex,endIndex,table(rows,columns,tableRows(tableCells(content(paragraph(elements(startIndex,endIndex,textRun(content))))))),paragraph(elements(startIndex,endIndex,textRun(content)))))',
+        });
+    } catch (error: any) {
+        if (error.code === 404) throw new UserError(`Document not found (ID: ${documentId}).`);
+        if (error.code === 403) throw new UserError(`Permission denied for document ${documentId}.`);
+        throw new Error(`Failed to retrieve document for findElement: ${error.message || 'Unknown error'}`);
+    }
+
+    const content = res.data.body?.content;
+    if (!content) return [];
+
+    const results: FoundElement[] = [];
+
+    // --- Structural listing (paragraph / table) ---
+    if (elementType === 'paragraph' || elementType === 'table') {
+        for (const element of content) {
+            if (elementType === 'paragraph' && element.paragraph?.elements) {
+                const text = element.paragraph.elements
+                    .map((pe: any) => pe.textRun?.content || '')
+                    .join('');
+                // Skip empty structural paragraphs unless they carry a real range
+                if (element.startIndex == null || element.endIndex == null) continue;
+                results.push({
+                    type: 'paragraph',
+                    startIndex: element.startIndex,
+                    endIndex: element.endIndex,
+                    text: text.replace(/\n$/, '').slice(0, 120),
+                });
+            } else if (elementType === 'table' && element.table) {
+                if (element.startIndex == null || element.endIndex == null) continue;
+                results.push({
+                    type: 'table',
+                    startIndex: element.startIndex,
+                    endIndex: element.endIndex,
+                    text: `table ${element.table.rows ?? '?'}x${element.table.columns ?? '?'}`,
+                });
+            }
+        }
+        // If no textQuery, we're done; otherwise fall through and also match text.
+        if (!textQuery) return results;
+    } else if (elementType === 'list' || elementType === 'image') {
+        // Not supported. Reject regardless of textQuery: silently returning plain
+        // text matches would mislabel them as if they located a list/image.
+        throw new UserError(`elementType "${elementType}" is not supported. Omit elementType and pass textQuery to locate content by text.`);
+    }
+
+    // --- Text matching (all occurrences) ---
+    // Each PARAGRAPH (top-level or inside a table cell) is treated as one searchable
+    // unit: its text runs are concatenated into a single string, with a parallel
+    // index map giving the true document index of every character. We search the
+    // concatenated string and map matches back through that map. Building the map
+    // per-character (rather than firstRunStart + offset) keeps indices exact even
+    // when a run/style boundary splits a word — so a phrase styled mid-way (bold,
+    // link, colour) still matches, which per-run searching missed.
+    //
+    // The paragraph (and table cell) is a HARD boundary: runs are never concatenated
+    // across paragraphs or cells. That confines remapping to within a paragraph,
+    // where text-run indices are contiguous, and so avoids the mis-indexing that a
+    // naive whole-document concatenate-and-remap produces across structural-index
+    // gaps (table cells, paragraph boundaries). A phrase spanning two paragraphs, or
+    // text inside a table nested within a cell, is therefore not matched.
+    if (textQuery) {
+        interface ParaUnit { text: string; map: number[]; firstIndex: number; }
+        const units: ParaUnit[] = [];
+        const collect = (items: any[]) => {
+            items.forEach(element => {
+                if (element.paragraph?.elements) {
+                    // Build one searchable unit per run of CONTIGUOUS text runs. A unit
+                    // ends at any document-index discontinuity — a non-text element
+                    // (inline image, smart chip, page break) or a run whose startIndex
+                    // isn't exactly the previous run's last index + 1. This is what makes
+                    // the per-character map safe: every unit's characters are contiguous
+                    // in document space, so a match's range is exactly its width and can
+                    // never span (and over-delete) an inline object. Adjacent runs split
+                    // only by styling ARE contiguous, so cross-run phrases still match.
+                    let text = '';
+                    let map: number[] = [];
+                    const flush = () => {
+                        if (map.length > 0) units.push({ text, map, firstIndex: map[0] });
+                        text = '';
+                        map = [];
+                    };
+                    element.paragraph.elements.forEach((pe: any) => {
+                        const content = pe.textRun?.content;
+                        if (content && pe.startIndex != null) {
+                            if (map.length > 0 && pe.startIndex !== map[map.length - 1] + 1) {
+                                flush(); // gap before this run — start a new unit
+                            }
+                            for (let i = 0; i < content.length; i++) {
+                                text += content[i];
+                                map.push(pe.startIndex + i);
+                            }
+                        } else {
+                            flush(); // non-text element ends the contiguous span
+                        }
+                    });
+                    flush();
+                }
+                if (element.table?.tableRows) {
+                    element.table.tableRows.forEach((row: any) => {
+                        row.tableCells?.forEach((cell: any) => {
+                            // Recurses one level into cell content (cell paragraphs).
+                            // A table nested *inside* a cell is not searched: the
+                            // documents.get field mask only populates `table` at the
+                            // top level, so a nested table arrives without its `table`
+                            // field and is skipped here. Documented as a limitation.
+                            if (cell.content) collect(cell.content);
+                        });
+                    });
+                }
+            });
+        };
+        collect(content);
+        units.sort((a, b) => a.firstIndex - b.firstIndex);
+
+        let instance = 0;
+        for (const unit of units) {
+            let from = 0;
+            while (true) {
+                const at = unit.text.indexOf(textQuery, from);
+                if (at === -1) break;
+                instance++;
+                results.push({
+                    type: 'text',
+                    instance,
+                    startIndex: unit.map[at],
+                    endIndex: unit.map[at + textQuery.length - 1] + 1,
+                    text: textQuery,
+                });
+                from = at + textQuery.length; // non-overlapping matches
+            }
+        }
+    }
+
+    return results;
+}
+
 // --- Paragraph Boundary Helper ---
 // Enhanced version to handle document structural elements more robustly
 export async function getParagraphRange(
