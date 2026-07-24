@@ -10,11 +10,15 @@ const FindElementParameters = DocumentIdParameter.extend({
     .string()
     .min(1)
     .optional()
-    .describe('Exact text to locate. Returns one result per occurrence with its document index range.'),
+    .describe(
+      'Exact text to locate. Returns one result per occurrence with its document index range.'
+    ),
   elementType: z
     .enum(['paragraph', 'table', 'list', 'image'])
     .optional()
-    .describe('List structural elements of this type. Only "paragraph" and "table" are supported; "list" and "image" are rejected.'),
+    .describe(
+      'List structural elements of this type. Only "paragraph" and "table" are supported; "list" and "image" are rejected.'
+    ),
 });
 
 export function register(server: FastMCP) {

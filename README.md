@@ -86,29 +86,29 @@ Tools across Google Docs, Sheets, and Drive:
 
 ### Google Docs
 
-| Tool                          | Description                                       |
-| ----------------------------- | ------------------------------------------------- |
-| `readDocument`                | Read content as plain text, JSON, or markdown     |
-| `appendText`                  | Append text to a document                         |
-| `insertText`                  | Insert text at a specific position                |
-| `deleteRange`                 | Remove content by index range                     |
-| `modifyText`                  | Replace, prepend, or transform text in a document |
-| `findAndReplace`              | Find and replace text across a document           |
+| Tool                          | Description                                                           |
+| ----------------------------- | --------------------------------------------------------------------- |
+| `readDocument`                | Read content as plain text, JSON, or markdown                         |
+| `appendText`                  | Append text to a document                                             |
+| `insertText`                  | Insert text at a specific position                                    |
+| `deleteRange`                 | Remove content by index range                                         |
+| `modifyText`                  | Replace, prepend, or transform text in a document                     |
+| `findAndReplace`              | Find and replace text across a document                               |
 | `findElement`                 | Locate text occurrences (with index ranges) or list paragraphs/tables |
-| `listTabs`                    | List all tabs in a multi-tab document             |
-| `addTab`                      | Add a new tab to a document                       |
-| `renameTab`                   | Rename a document tab                             |
-| `replaceDocumentWithMarkdown` | Replace entire document content from markdown     |
-| `replaceRangeWithMarkdown`    | Replace a specific range with markdown content    |
-| `appendMarkdown`              | Append markdown-formatted content                 |
-| `applyTextStyle`              | Bold, italic, colors, font size, links            |
-| `applyParagraphStyle`         | Alignment, spacing, indentation                   |
-| `insertTable`                 | Create an empty table                             |
-| `insertTableWithData`         | Create a table pre-filled with data               |
-| `insertPageBreak`             | Insert page breaks                                |
-| `insertSectionBreak`          | Insert section break (NEXT_PAGE or CONTINUOUS)    |
-| `updateSectionStyle`          | Update section style: flip orientation, margins   |
-| `insertImage`                 | Insert images from URLs or local files            |
+| `listTabs`                    | List all tabs in a multi-tab document                                 |
+| `addTab`                      | Add a new tab to a document                                           |
+| `renameTab`                   | Rename a document tab                                                 |
+| `replaceDocumentWithMarkdown` | Replace entire document content from markdown                         |
+| `replaceRangeWithMarkdown`    | Replace a specific range with markdown content                        |
+| `appendMarkdown`              | Append markdown-formatted content                                     |
+| `applyTextStyle`              | Bold, italic, colors, font size, links                                |
+| `applyParagraphStyle`         | Alignment, spacing, indentation                                       |
+| `insertTable`                 | Create an empty table                                                 |
+| `insertTableWithData`         | Create a table pre-filled with data                                   |
+| `insertPageBreak`             | Insert page breaks                                                    |
+| `insertSectionBreak`          | Insert section break (NEXT_PAGE or CONTINUOUS)                        |
+| `updateSectionStyle`          | Update section style: flip orientation, margins                       |
+| `insertImage`                 | Insert images from URLs or local files                                |
 
 ### Comments
 

@@ -15,17 +15,27 @@ describe('findElements', () => {
       const docs = mockDocsWith([
         {
           paragraph: {
-            elements: [
-              { startIndex: 1, endIndex: 18, textRun: { content: 'alpha beta alpha\n' } },
-            ],
+            elements: [{ startIndex: 1, endIndex: 18, textRun: { content: 'alpha beta alpha\n' } }],
           },
         },
       ]);
 
       const hits = await findElements(docs, 'doc123', { textQuery: 'alpha' });
       expect(hits.length).toBe(2);
-      expect(hits[0]).toEqual({ type: 'text', instance: 1, startIndex: 1, endIndex: 6, text: 'alpha' });
-      expect(hits[1]).toEqual({ type: 'text', instance: 2, startIndex: 12, endIndex: 17, text: 'alpha' });
+      expect(hits[0]).toEqual({
+        type: 'text',
+        instance: 1,
+        startIndex: 1,
+        endIndex: 6,
+        text: 'alpha',
+      });
+      expect(hits[1]).toEqual({
+        type: 'text',
+        instance: 2,
+        startIndex: 12,
+        endIndex: 17,
+        text: 'alpha',
+      });
       // Every returned range width must equal the query length (safe for deleteRange).
       for (const h of hits) expect(h.endIndex - h.startIndex).toBe('alpha'.length);
     });
@@ -106,8 +116,16 @@ describe('findElements', () => {
     it('does NOT match across a paragraph boundary (paragraph is a hard boundary)', async () => {
       // "alpha" / "beta" live in separate paragraphs; a query spanning the break must not match.
       const docs = mockDocsWith([
-        { paragraph: { elements: [{ startIndex: 1, endIndex: 7, textRun: { content: 'alpha\n' } }] } },
-        { paragraph: { elements: [{ startIndex: 7, endIndex: 12, textRun: { content: 'beta\n' } }] } },
+        {
+          paragraph: {
+            elements: [{ startIndex: 1, endIndex: 7, textRun: { content: 'alpha\n' } }],
+          },
+        },
+        {
+          paragraph: {
+            elements: [{ startIndex: 7, endIndex: 12, textRun: { content: 'beta\n' } }],
+          },
+        },
       ]);
       expect(await findElements(docs, 'doc123', { textQuery: 'alpha\nbeta' })).toEqual([]);
     });
@@ -118,7 +136,11 @@ describe('findElements', () => {
       // concatenate-and-remap approach would map "beta" to ~index 7 (firstRunStart +
       // fullTextOffset); per-run matching must return the run's real index, 103.
       const docs = mockDocsWith([
-        { paragraph: { elements: [{ startIndex: 1, endIndex: 7, textRun: { content: 'alpha\n' } }] } },
+        {
+          paragraph: {
+            elements: [{ startIndex: 1, endIndex: 7, textRun: { content: 'alpha\n' } }],
+          },
+        },
         {
           startIndex: 100,
           endIndex: 120,
@@ -149,13 +171,21 @@ describe('findElements', () => {
       const hits = await findElements(docs, 'doc123', { textQuery: 'beta' });
       expect(hits.length).toBe(1);
       // "beta" is at offset 0 of the run that starts at index 103 -> [103, 107].
-      expect(hits[0]).toEqual({ type: 'text', instance: 1, startIndex: 103, endIndex: 107, text: 'beta' });
+      expect(hits[0]).toEqual({
+        type: 'text',
+        instance: 1,
+        startIndex: 103,
+        endIndex: 107,
+        text: 'beta',
+      });
       expect(hits[0].endIndex - hits[0].startIndex).toBe('beta'.length);
     });
 
     it('returns an empty array when the text is absent', async () => {
       const docs = mockDocsWith([
-        { paragraph: { elements: [{ startIndex: 1, endIndex: 6, textRun: { content: 'abcd\n' } }] } },
+        {
+          paragraph: { elements: [{ startIndex: 1, endIndex: 6, textRun: { content: 'abcd\n' } }] },
+        },
       ]);
       expect(await findElements(docs, 'doc123', { textQuery: 'zzz' })).toEqual([]);
     });
@@ -167,14 +197,18 @@ describe('findElements', () => {
         { startIndex: 20, endIndex: 40, table: { rows: 2, columns: 3, tableRows: [] } },
       ]);
       const hits = await findElements(docs, 'doc123', { elementType: 'table' });
-      expect(hits).toEqual([
-        { type: 'table', startIndex: 20, endIndex: 40, text: 'table 2x3' },
-      ]);
+      expect(hits).toEqual([{ type: 'table', startIndex: 20, endIndex: 40, text: 'table 2x3' }]);
     });
 
     it('lists top-level body paragraphs (newline-stripped preview) and not table-cell paragraphs', async () => {
       const docs = mockDocsWith([
-        { startIndex: 1, endIndex: 17, paragraph: { elements: [{ startIndex: 1, endIndex: 17, textRun: { content: 'intro paragraph\n' } }] } },
+        {
+          startIndex: 1,
+          endIndex: 17,
+          paragraph: {
+            elements: [{ startIndex: 1, endIndex: 17, textRun: { content: 'intro paragraph\n' } }],
+          },
+        },
         {
           startIndex: 100,
           endIndex: 120,
@@ -182,7 +216,21 @@ describe('findElements', () => {
             rows: 1,
             columns: 1,
             tableRows: [
-              { tableCells: [{ content: [{ paragraph: { elements: [{ startIndex: 103, endIndex: 113, textRun: { content: 'cell para\n' } }] } }] }] },
+              {
+                tableCells: [
+                  {
+                    content: [
+                      {
+                        paragraph: {
+                          elements: [
+                            { startIndex: 103, endIndex: 113, textRun: { content: 'cell para\n' } },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
             ],
           },
         },
@@ -196,7 +244,9 @@ describe('findElements', () => {
 
     it('rejects unsupported element types (list/image) regardless of textQuery', async () => {
       const docs = mockDocsWith([]);
-      await expect(findElements(docs, 'doc123', { elementType: 'image', textQuery: 'x' })).rejects.toThrow();
+      await expect(
+        findElements(docs, 'doc123', { elementType: 'image', textQuery: 'x' })
+      ).rejects.toThrow();
       await expect(findElements(docs, 'doc123', { elementType: 'list' })).rejects.toThrow();
     });
   });
@@ -204,21 +254,36 @@ describe('findElements', () => {
   describe('combined elementType + textQuery', () => {
     it('returns both the structural listing and the text matches', async () => {
       const docs = mockDocsWith([
-        { paragraph: { elements: [{ startIndex: 1, endIndex: 14, textRun: { content: 'foundme here\n' } }] } },
+        {
+          paragraph: {
+            elements: [{ startIndex: 1, endIndex: 14, textRun: { content: 'foundme here\n' } }],
+          },
+        },
         { startIndex: 50, endIndex: 70, table: { rows: 1, columns: 1, tableRows: [] } },
       ]);
-      const hits = await findElements(docs, 'doc123', { elementType: 'table', textQuery: 'foundme' });
+      const hits = await findElements(docs, 'doc123', {
+        elementType: 'table',
+        textQuery: 'foundme',
+      });
       const tables = hits.filter((h) => h.type === 'table');
       const texts = hits.filter((h) => h.type === 'text');
       expect(tables.length).toBe(1);
       expect(texts.length).toBe(1);
       expect(tables[0]).toEqual({ type: 'table', startIndex: 50, endIndex: 70, text: 'table 1x1' });
-      expect(texts[0]).toEqual({ type: 'text', instance: 1, startIndex: 1, endIndex: 8, text: 'foundme' });
+      expect(texts[0]).toEqual({
+        type: 'text',
+        instance: 1,
+        startIndex: 1,
+        endIndex: 8,
+        text: 'foundme',
+      });
     });
   });
 
   it('requires at least one of textQuery or elementType', async () => {
     const docs = mockDocsWith([]);
-    await expect(findElements(docs, 'doc123', {})).rejects.toThrow(/textQuery.*elementType|elementType.*textQuery/);
+    await expect(findElements(docs, 'doc123', {})).rejects.toThrow(
+      /textQuery.*elementType|elementType.*textQuery/
+    );
   });
 });
