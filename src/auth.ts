@@ -223,8 +223,15 @@ async function authenticate(): Promise<OAuth2Client> {
 
   const state = crypto.randomBytes(32).toString('hex');
 
+  // prompt: 'consent' is what makes re-authorization actually work. Google returns a refresh
+  // token only when it re-asks for consent; for an app the user already granted, an offline
+  // request without it yields an access token and no refresh token. Since only the refresh
+  // token is persisted, a re-auth would then save nothing and leave the old grant — and its
+  // old, narrower scope set — in place, while still reporting success. Adding a scope to
+  // SCOPES would appear to do nothing at all.
   const authorizeUrl = oAuth2Client.generateAuthUrl({
     access_type: 'offline',
+    prompt: 'consent',
     scope: SCOPES.join(' '),
     state,
   });
@@ -271,12 +278,18 @@ async function authenticate(): Promise<OAuth2Client> {
 
   const { tokens } = await oAuth2Client.getToken(code);
   oAuth2Client.setCredentials(tokens);
-  if (tokens.refresh_token) {
-    await saveCredentials(oAuth2Client);
-  } else {
-    logger.warn('Did not receive refresh token. Token might expire.');
+  if (!tokens.refresh_token) {
+    // Nothing is persisted without a refresh token, so this run changed nothing on disk. Said
+    // as a warning it reads as a minor caveat under a success message, and the stale grant
+    // goes unnoticed until some tool fails for a reason that looks unrelated.
+    throw new Error(
+      'Google returned no refresh token, so nothing was saved and the previous authorization ' +
+        '(with whatever scopes it had) is still in force. Revoke this app at ' +
+        'https://myaccount.google.com/permissions and run the auth flow again.'
+    );
   }
-  logger.info('Authentication successful!');
+  await saveCredentials(oAuth2Client);
+  logger.info(`Authentication successful! Granted scopes: ${tokens.scope ?? '(not reported)'}`);
   return oAuth2Client;
 }
 
