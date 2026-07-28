@@ -1,5 +1,7 @@
 # Google Docs, Sheets, Drive, Gmail & Calendar MCP Server
 
+[![MCP Toplist](https://mcptoplist.com/badge/glama%2Fa-bonus%2Fgoogle-docs-mcp.svg)](https://mcptoplist.com/server/glama%2Fa-bonus%2Fgoogle-docs-mcp)
+
 ![Demo Animation](assets/google.docs.mcp.1.gif)
 
 Connect Claude Desktop, Cursor, or any MCP client to your Google Docs, Google Sheets, Google Drive, Gmail, and Google Calendar.
