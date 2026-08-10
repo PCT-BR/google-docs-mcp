@@ -220,6 +220,21 @@ Tools across Google Docs, Sheets, and Drive:
 | `deleteEvent`   | Permanently delete an event. Optional `sendUpdates` emails cancellations to attendees              |
 | `quickAddEvent` | Natural-language event creation: `"Lunch with Sarah tomorrow 12pm"` — Google parses the rest       |
 
+### Apps Script
+
+Automate the automation: create and edit the Apps Script behind a Doc or Sheet — `onEdit` triggers, custom menus, scheduled jobs — instead of telling the user to paste code into the editor by hand.
+
+| Tool                      | Description                                                                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `createAppsScriptProject` | Create a project, optionally **bound** to a Doc/Sheet/Slides/Form via `parentId`, and write its initial files in the same call      |
+| `getAppsScriptContent`    | Read a project's files — pass `includeSource: false` for a quick listing, or `versionNumber` to read a saved version                |
+| `updateAppsScriptContent` | Write files. `merge` (default) replaces same-named files and keeps the rest; `replace` makes the project exactly the files you pass |
+
+**Requires two things beyond the usual setup:**
+
+1. The Apps Script API must be enabled **per Google account** at <https://script.google.com/home/usersettings> — it is off by default, and a 403 with "Apps Script API" in the message means this step was missed.
+2. The `script.projects` scope, which is included in `SCOPES`. Existing installs must re-authorize once to pick it up.
+
 ---
 
 ## Usage Examples
@@ -322,20 +337,20 @@ Visit the server root URL (`/`) for setup instructions and a ready-to-copy clien
 
 ### Environment Variables
 
-| Variable               | Description                                                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `MCP_TRANSPORT`        | Set to `httpStream` to enable remote mode (default: `stdio`)                                                        |
-| `BASE_URL`             | Public URL of the deployed server (required for OAuth redirects)                                                    |
-| `GOOGLE_CLIENT_ID`     | OAuth client ID (Web application type)                                                                              |
-| `GOOGLE_CLIENT_SECRET` | OAuth client secret                                                                                                 |
-| `MCP_TOOL_GROUPS`      | Optional comma-separated tool groups to register: `docs`, `drive`, `sheets`, `utils`, `gmail`, `calendar`, or `all` |
-| `ALLOWED_DOMAINS`      | Comma-separated list of allowed Google Workspace domains (optional)                                                 |
-| `PORT`                 | HTTP port (default: `8080`)                                                                                         |
-| `TOKEN_STORE`          | Set to `firestore` for persistent token storage (default: in-memory)                                                |
-| `JWT_SIGNING_KEY`      | Fixed signing key so tokens survive restarts (auto-generated if not set)                                            |
-| `REFRESH_TOKEN_TTL`    | Refresh token lifetime in seconds (default: `2592000` / 30 days)                                                    |
-| `GCLOUD_PROJECT`       | GCP project ID for Firestore (required when `TOKEN_STORE=firestore`)                                                |
-| `MCP_STATELESS`        | Set to `true` for serverless deployments (Cloud Run, etc.) — disables session tracking to survive scale-to-zero     |
+| Variable               | Description                                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `MCP_TRANSPORT`        | Set to `httpStream` to enable remote mode (default: `stdio`)                                                                  |
+| `BASE_URL`             | Public URL of the deployed server (required for OAuth redirects)                                                              |
+| `GOOGLE_CLIENT_ID`     | OAuth client ID (Web application type)                                                                                        |
+| `GOOGLE_CLIENT_SECRET` | OAuth client secret                                                                                                           |
+| `MCP_TOOL_GROUPS`      | Optional comma-separated tool groups to register: `docs`, `drive`, `sheets`, `utils`, `gmail`, `calendar`, `script`, or `all` |
+| `ALLOWED_DOMAINS`      | Comma-separated list of allowed Google Workspace domains (optional)                                                           |
+| `PORT`                 | HTTP port (default: `8080`)                                                                                                   |
+| `TOKEN_STORE`          | Set to `firestore` for persistent token storage (default: in-memory)                                                          |
+| `JWT_SIGNING_KEY`      | Fixed signing key so tokens survive restarts (auto-generated if not set)                                                      |
+| `REFRESH_TOKEN_TTL`    | Refresh token lifetime in seconds (default: `2592000` / 30 days)                                                              |
+| `GCLOUD_PROJECT`       | GCP project ID for Firestore (required when `TOKEN_STORE=firestore`)                                                          |
+| `MCP_STATELESS`        | Set to `true` for serverless deployments (Cloud Run, etc.) — disables session tracking to survive scale-to-zero               |
 
 ### Setup
 
@@ -480,6 +495,8 @@ Without `GOOGLE_MCP_PROFILE`, behavior is unchanged.
 - **Gmail attachments:** `getMessage` returns attachment metadata but does not download attachment bytes yet.
 - **Gmail HTML email send:** `sendEmail` sends plain-text only. For HTML bodies, paste HTML into the `body` field — it will be delivered as text, not rendered.
 - **Calendar scope:** `calendar.events` permits event CRUD on existing calendars but cannot create or delete entire calendars themselves.
+- **Apps Script API is off by default:** every account must enable it once at <https://script.google.com/home/usersettings>. The tools cannot turn it on for you.
+- **Apps Script deployments:** the tools edit project source. Creating versions, deployments and installable triggers is not exposed yet — simple triggers such as `onEdit` and `onOpen` work without any of that.
 - **Calendar recurring events:** `updateEvent` and `deleteEvent` modify the entire recurring series unless you target a specific instance ID returned by `listEvents` with `singleEvents=true`.
 
 ## Troubleshooting
