@@ -6,8 +6,17 @@ import { registerSheetsTools } from './sheets/index.js';
 import { registerUtilsTools } from './utils/index.js';
 import { registerGmailTools } from './gmail/index.js';
 import { registerCalendarTools } from './calendar/index.js';
+import { registerScriptTools } from './script/index.js';
 
-export const TOOL_GROUPS = ['docs', 'drive', 'sheets', 'utils', 'gmail', 'calendar'] as const;
+export const TOOL_GROUPS = [
+  'docs',
+  'drive',
+  'sheets',
+  'utils',
+  'gmail',
+  'calendar',
+  'script',
+] as const;
 
 export type ToolGroup = (typeof TOOL_GROUPS)[number];
 
@@ -62,6 +71,9 @@ export function registerAllTools(
         break;
       case 'calendar':
         registerCalendarTools(server);
+        break;
+      case 'script':
+        registerScriptTools(server);
         break;
     }
   }
