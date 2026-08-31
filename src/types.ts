@@ -178,6 +178,39 @@ export const ApplyTextStyleToolParameters = DocumentIdParameter.extend({
 });
 export type ApplyTextStyleToolArgs = z.infer<typeof ApplyTextStyleToolParameters>;
 
+export const BatchApplyTextStyleOperation = z.strictObject({
+  target: z
+    .union([RangeParameters, TextFindParameter])
+    .describe(
+      "This operation's target range, either by start/end indices or by finding specific text."
+    ),
+  style: TextStyleParameters.refine(
+    (styleArgs) => Object.values(styleArgs).some((v) => v !== undefined),
+    { message: 'At least one text style option must be provided.' }
+  ).describe('The text styling to apply for this operation.'),
+});
+export type BatchApplyTextStyleOperationArgs = z.infer<typeof BatchApplyTextStyleOperation>;
+
+export const BatchApplyTextStyleToolParameters = DocumentIdParameter.extend({
+  operations: z
+    .array(BatchApplyTextStyleOperation)
+    .min(1)
+    .max(500)
+    .describe(
+      'List of {target, style} operations to apply in as few Docs API calls as possible. ' +
+        'Prefer startIndex/endIndex ranges (computed once from a single readDocument JSON pass) over textToFind ' +
+        '— each textToFind target is resolved with its own document read before the batch write, which adds ' +
+        'back the round-trips this tool exists to avoid.'
+    ),
+  tabId: z
+    .string()
+    .optional()
+    .describe(
+      'The ID of the specific tab to apply formatting in. Applies to every operation in this call. If not specified, operates on the first tab.'
+    ),
+});
+export type BatchApplyTextStyleToolArgs = z.infer<typeof BatchApplyTextStyleToolParameters>;
+
 export const ApplyParagraphStyleToolParameters = DocumentIdParameter.extend({
   // Target EITHER by range OR by finding text (tool logic needs to find paragraph boundaries)
   target: z
