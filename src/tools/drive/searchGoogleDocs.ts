@@ -55,7 +55,10 @@ export function register(server: FastMCP) {
         const response = await drive.files.list({
           q: queryString,
           pageSize: args.maxResults,
-          orderBy: 'modifiedTime desc',
+          // Drive rejects `orderBy` when `q` contains a `fullText` clause
+          // ("Sorting is not supported for queries with fullText terms") —
+          // only the "name" search mode avoids fullText.
+          ...(args.searchIn === 'name' ? { orderBy: 'modifiedTime desc' } : {}),
           fields: 'files(id,name,modifiedTime,createdTime,webViewLink,owners(displayName),parents)',
           supportsAllDrives: true,
           includeItemsFromAllDrives: true,
