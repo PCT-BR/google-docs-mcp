@@ -9,6 +9,7 @@ import * as http from 'http';
 import { fileURLToPath } from 'url';
 import * as crypto from 'crypto';
 import { logger } from './logger.js';
+import { getScopesForToolGroups, parseEnabledToolGroups } from './googleScopes.js';
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -49,15 +50,7 @@ function getTokenPath(): string {
 // Scopes
 // ---------------------------------------------------------------------------
 
-const SCOPES = [
-  'https://www.googleapis.com/auth/documents',
-  'https://www.googleapis.com/auth/drive',
-  'https://www.googleapis.com/auth/spreadsheets',
-  'https://www.googleapis.com/auth/script.external_request',
-  'https://www.googleapis.com/auth/script.projects',
-  'https://www.googleapis.com/auth/gmail.modify',
-  'https://www.googleapis.com/auth/calendar.events',
-];
+const SCOPES = getScopesForToolGroups(parseEnabledToolGroups());
 
 const TOKEN_CREDENTIAL_FIELDS = ['access_token', 'refresh_token', 'scope', 'token_type'] as const;
 

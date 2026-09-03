@@ -80,6 +80,34 @@ Then each user just adds the URL to their MCP client -- no npx, no tokens, no lo
 
 Your MCP client will prompt for Google sign-in on first connection. See [Remote Deployment](#remote-deployment) for details.
 
+### Private Railway Deployment (Docs, Drive & Sheets Only)
+
+For a private personal deployment on Railway, you can run the remote server without
+Firestore. This keeps setup simple, but OAuth sessions can be lost when Railway
+restarts the container; reconnect from your MCP client if that happens.
+
+Set these Railway variables:
+
+```bash
+MCP_TRANSPORT=httpStream
+MCP_STATELESS=true
+BASE_URL=https://your-app.up.railway.app
+GOOGLE_CLIENT_ID=your-web-oauth-client-id
+GOOGLE_CLIENT_SECRET=your-web-oauth-client-secret
+JWT_SIGNING_KEY=replace-with-a-long-random-secret
+MCP_TOOL_GROUPS=docs,drive,sheets,utils
+```
+
+Create a Google OAuth client of type **Web application** and add this authorized
+redirect URI:
+
+```text
+https://your-app.up.railway.app/oauth/callback
+```
+
+With `MCP_TOOL_GROUPS=docs,drive,sheets,utils`, the OAuth flow requests only the
+Google Docs, Drive, and Sheets scopes.
+
 ---
 
 ## What Can It Do?

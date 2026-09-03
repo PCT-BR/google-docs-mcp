@@ -22,6 +22,7 @@ import {
 } from './cachedToolsList.js';
 import { initializeGoogleClient } from './clients.js';
 import { parseEnabledToolGroups, registerAllTools } from './tools/index.js';
+import { getScopesForToolGroups } from './googleScopes.js';
 import { wrapServerForRemote } from './remoteWrapper.js';
 import { registerLandingPage } from './landingPage.js';
 import { registerDownloadRoute } from './downloadProxy.js';
@@ -108,15 +109,18 @@ if (isRemote) {
   }
 }
 
+let enabledToolGroups: ReturnType<typeof parseEnabledToolGroups>;
+try {
+  enabledToolGroups = parseEnabledToolGroups();
+} catch (error: any) {
+  logger.error(`FATAL: Invalid MCP_TOOL_GROUPS: ${error.message || error}`);
+  process.exit(1);
+}
+
 const GOOGLE_API_SCOPES = [
   'openid',
   'email',
-  'https://www.googleapis.com/auth/documents',
-  'https://www.googleapis.com/auth/spreadsheets',
-  'https://www.googleapis.com/auth/drive',
-  'https://www.googleapis.com/auth/script.external_request',
-  'https://www.googleapis.com/auth/gmail.modify',
-  'https://www.googleapis.com/auth/calendar.events',
+  ...getScopesForToolGroups(enabledToolGroups),
 ];
 
 const oauthProxy = isRemote
@@ -200,15 +204,8 @@ const server = new FastMCP({
 const registeredTools: Parameters<FastMCP['addTool']>[0][] = [];
 collectToolsWhileRegistering(server, registeredTools);
 if (isRemote) wrapServerForRemote(server);
-let enabledToolGroups: ReturnType<typeof parseEnabledToolGroups>;
-try {
-  enabledToolGroups = parseEnabledToolGroups();
-  registerAllTools(server, enabledToolGroups);
-  logger.info(`Registered tool groups: ${enabledToolGroups.join(', ')}.`);
-} catch (error: any) {
-  logger.error(`FATAL: Invalid MCP_TOOL_GROUPS: ${error.message || error}`);
-  process.exit(1);
-}
+registerAllTools(server, enabledToolGroups);
+logger.info(`Registered tool groups: ${enabledToolGroups.join(', ')}.`);
 
 try {
   if (isRemote) {

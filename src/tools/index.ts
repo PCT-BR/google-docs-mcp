@@ -7,43 +7,16 @@ import { registerUtilsTools } from './utils/index.js';
 import { registerGmailTools } from './gmail/index.js';
 import { registerCalendarTools } from './calendar/index.js';
 import { registerScriptTools } from './script/index.js';
+import {
+  GOOGLE_TOOL_GROUPS,
+  parseEnabledToolGroups,
+  type GoogleToolGroup,
+} from '../googleScopes.js';
 
-export const TOOL_GROUPS = [
-  'docs',
-  'drive',
-  'sheets',
-  'utils',
-  'gmail',
-  'calendar',
-  'script',
-] as const;
+export const TOOL_GROUPS = GOOGLE_TOOL_GROUPS;
 
-export type ToolGroup = (typeof TOOL_GROUPS)[number];
-
-const TOOL_GROUP_SET = new Set<string>(TOOL_GROUPS);
-
-export function parseEnabledToolGroups(raw: string | undefined = process.env.MCP_TOOL_GROUPS) {
-  if (!raw?.trim()) return [...TOOL_GROUPS];
-
-  const requested = raw
-    .split(',')
-    .map((group) => group.trim().toLowerCase())
-    .filter(Boolean);
-
-  if (requested.length === 0 || requested.includes('all')) {
-    return [...TOOL_GROUPS];
-  }
-
-  const unknown = requested.filter((group) => !TOOL_GROUP_SET.has(group));
-  if (unknown.length > 0) {
-    throw new Error(
-      `Unknown MCP_TOOL_GROUPS value(s): ${unknown.join(', ')}. Valid groups: ${TOOL_GROUPS.join(', ')}`
-    );
-  }
-
-  const selected = new Set(requested);
-  return TOOL_GROUPS.filter((group) => selected.has(group));
-}
+export type ToolGroup = GoogleToolGroup;
+export { parseEnabledToolGroups };
 
 /**
  * Registers all tools with the FastMCP server.
