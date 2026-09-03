@@ -63,6 +63,34 @@ describe('SecureOAuthProxy', () => {
       })
     ).rejects.toThrow('invalid_request');
   });
+
+  it('restores an allowed cached client registration after a server restart', async () => {
+    const proxy = createProxy();
+
+    const response = await proxy.authorize({
+      client_id: 'public-client-id',
+      redirect_uri: 'http://127.0.0.1:49152/callback/codex',
+      response_type: 'code',
+      code_challenge: 'test-challenge',
+      code_challenge_method: 'S256',
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  it('does not restore a cached client registration outside the allowlist', async () => {
+    const proxy = createProxy();
+
+    await expect(
+      proxy.authorize({
+        client_id: 'public-client-id',
+        redirect_uri: 'https://attacker.example/callback',
+        response_type: 'code',
+        code_challenge: 'test-challenge',
+        code_challenge_method: 'S256',
+      })
+    ).rejects.toThrow('invalid_redirect_uri');
+  });
 });
 
 describe('parseAdditionalRedirectUriPatterns', () => {

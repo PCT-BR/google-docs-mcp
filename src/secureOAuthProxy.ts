@@ -53,6 +53,20 @@ export class SecureOAuthProxy extends OAuthProxy {
       );
     }
 
+    // FastMCP keeps dynamic client registrations in memory. Remote clients such
+    // as LibreChat may cache their registration across a Railway restart, so
+    // restore the exact callback after validating it against the server allowlist.
+    if (!this.isAllowedRedirectUri(params.redirect_uri)) {
+      throw new OAuthProxyError(
+        'invalid_redirect_uri',
+        `Invalid redirect URI: ${params.redirect_uri}`
+      );
+    }
+    await super.registerClient({
+      redirect_uris: [params.redirect_uri],
+      token_endpoint_auth_method: 'none',
+    });
+
     return super.authorize(params);
   }
 
