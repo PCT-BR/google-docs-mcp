@@ -14,7 +14,6 @@
 //   ALLOWED_DOMAINS=scio.cz,...        Restrict to specific Google Workspace domains
 
 import { FastMCP } from 'fastmcp';
-import { OAuthProxy } from 'fastmcp/auth';
 import {
   buildCachedToolsListPayload,
   collectToolsWhileRegistering,
@@ -30,6 +29,7 @@ import { FirestoreTokenStorage } from './firestoreTokenStorage.js';
 import { parseStatelessFlag } from './config.js';
 import { enableUpstreamOfflineAccess } from './upstreamAuth.js';
 import { logger } from './logger.js';
+import { SecureOAuthProxy, parseAdditionalRedirectUriPatterns } from './secureOAuthProxy.js';
 
 // --- Auth subcommand ---
 if (process.argv[2] === 'auth') {
@@ -117,14 +117,20 @@ try {
   process.exit(1);
 }
 
-const GOOGLE_API_SCOPES = [
-  'openid',
-  'email',
-  ...getScopesForToolGroups(enabledToolGroups),
-];
+const GOOGLE_API_SCOPES = ['openid', 'email', ...getScopesForToolGroups(enabledToolGroups)];
+
+let additionalRedirectUriPatterns: string[] = [];
+try {
+  additionalRedirectUriPatterns = parseAdditionalRedirectUriPatterns(
+    process.env.MCP_ALLOWED_REDIRECT_URI_PATTERNS
+  );
+} catch (error: any) {
+  logger.error(`FATAL: Invalid MCP_ALLOWED_REDIRECT_URI_PATTERNS: ${error.message || error}`);
+  process.exit(1);
+}
 
 const oauthProxy = isRemote
-  ? new OAuthProxy({
+  ? new SecureOAuthProxy({
       upstreamAuthorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
       upstreamTokenEndpoint: 'https://oauth2.googleapis.com/token',
       upstreamClientId: process.env.GOOGLE_CLIENT_ID!,
@@ -133,11 +139,13 @@ const oauthProxy = isRemote
       scopes: GOOGLE_API_SCOPES,
       allowedRedirectUriPatterns: [
         'http://localhost:*',
+        'http://127.0.0.1:*',
         `${process.env.BASE_URL}/*`,
         'cursor://*',
         'https://claude.ai/*',
         'https://claude.com/*',
         'claude://*',
+        ...additionalRedirectUriPatterns,
       ],
       jwtSigningKey: process.env.JWT_SIGNING_KEY,
       encryptionKey: process.env.TOKEN_ENCRYPTION_KEY,
