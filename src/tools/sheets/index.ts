@@ -43,6 +43,7 @@ import { register as updateTableRange } from './updateTableRange.js';
 import { register as appendTableRows } from './appendTableRows.js';
 import { register as insertChart } from './insertChart.js';
 import { register as deleteChart } from './deleteChart.js';
+import { registerAdvancedLayoutTools } from './advancedLayout.js';
 
 export function registerSheetsTools(server: FastMCP) {
   readSpreadsheet(server);
@@ -89,4 +90,5 @@ export function registerSheetsTools(server: FastMCP) {
   appendTableRows(server);
   insertChart(server);
   deleteChart(server);
+  registerAdvancedLayoutTools(server);
 }

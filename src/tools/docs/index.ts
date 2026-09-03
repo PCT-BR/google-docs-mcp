@@ -34,6 +34,7 @@ import { register as deleteTableRows } from './deleteTableRows.js';
 // Sub-domains
 import { registerCommentTools } from './comments/index.js';
 import { registerFormattingTools } from './formatting/index.js';
+import { registerAdvancedStructureTools } from './advancedStructure.js';
 
 export function registerDocsTools(server: FastMCP) {
   // Core read/write
@@ -70,4 +71,5 @@ export function registerDocsTools(server: FastMCP) {
   // Sub-domains
   registerFormattingTools(server);
   registerCommentTools(server);
+  registerAdvancedStructureTools(server);
 }

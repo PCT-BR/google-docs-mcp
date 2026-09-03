@@ -53,6 +53,52 @@ describe('registerAllTools', () => {
     expect(toolNames).toContain('listSpreadsheets');
     expect(toolNames).not.toContain('sendEmail');
   });
+
+  it('exposes private Drive index tools with the drive group', () => {
+    const toolNames = captureTools(['drive']);
+
+    expect(toolNames).toContain('findOrCreateDriveIndex');
+    expect(toolNames).toContain('refreshDriveIndex');
+    expect(toolNames).toContain('searchDriveIndex');
+    expect(toolNames).toContain('updateDriveIndexEntry');
+  });
+
+  it('exposes Google Docs comment tools with the docs group', () => {
+    const toolNames = captureTools(['docs']);
+
+    expect(toolNames).toContain('listComments');
+    expect(toolNames).toContain('createComment');
+    expect(toolNames).toContain('addComment');
+    expect(toolNames).toContain('replyToComment');
+    expect(toolNames).toContain('resolveComment');
+    expect(toolNames).toContain('deleteComment');
+  });
+
+  it('exposes advanced Google Docs structure tools with the docs group', () => {
+    const toolNames = captureTools(['docs']);
+
+    expect(toolNames).toContain('listHeadersFooters');
+    expect(toolNames).toContain('createHeader');
+    expect(toolNames).toContain('createFooter');
+    expect(toolNames).toContain('insertFootnote');
+    expect(toolNames).toContain('listFootnotes');
+    expect(toolNames).toContain('createNamedRange');
+    expect(toolNames).toContain('replaceNamedRange');
+    expect(toolNames).toContain('getDocumentPageFormat');
+    expect(toolNames).toContain('setDocumentPageFormat');
+  });
+
+  it('exposes advanced Sheets layout tools with the sheets group', () => {
+    const toolNames = captureTools(['sheets']);
+
+    expect(toolNames).toContain('setBasicFilter');
+    expect(toolNames).toContain('createFilterView');
+    expect(toolNames).toContain('insertRows');
+    expect(toolNames).toContain('deleteColumns');
+    expect(toolNames).toContain('mergeCells');
+    expect(toolNames).toContain('unmergeCells');
+    expect(toolNames).toContain('updateChart');
+  });
 });
 
 describe('getScopesForToolGroups', () => {
