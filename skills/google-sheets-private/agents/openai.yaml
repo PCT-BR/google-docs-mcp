@@ -1,0 +1,3 @@
+interface:
+  display_name: "Google Sheets Private"
+  short_description: "Create and edit private Google Sheets via MCP."

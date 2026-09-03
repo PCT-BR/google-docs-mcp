@@ -1,0 +1,3 @@
+interface:
+  display_name: "Google Workspace Private"
+  short_description: "Route private Drive, Docs, and Sheets tasks."

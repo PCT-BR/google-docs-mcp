@@ -110,6 +110,17 @@ https://your-app.up.railway.app/oauth/callback
 With `MCP_TOOL_GROUPS=docs,drive,sheets,utils`, the OAuth flow requests only the
 Google Docs, Drive, and Sheets scopes.
 
+### Codex Skills
+
+The maintained Codex skills for this private MCP deployment live in [`skills/`](skills/):
+
+- [`google-workspace-private`](skills/google-workspace-private/SKILL.md) routes cross-service requests.
+- [`google-drive-private`](skills/google-drive-private/SKILL.md) handles Drive search, organization, and indexing.
+- [`google-docs-private`](skills/google-docs-private/SKILL.md) handles Google Docs content and structure.
+- [`google-sheets-private`](skills/google-sheets-private/SKILL.md) handles Google Sheets data, layout, and charts.
+
+Completed plans and superseded skill references are retained in [`old/`](old/).
+
 ---
 
 ## What Can It Do?
