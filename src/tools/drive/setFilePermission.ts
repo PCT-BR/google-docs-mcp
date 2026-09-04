@@ -3,6 +3,7 @@ import { UserError } from 'fastmcp';
 import { z } from 'zod';
 import { drive_v3 } from 'googleapis';
 import { getDriveClient } from '../../clients.js';
+import { syncDriveIndexFile } from './driveIndex.js';
 
 export function register(server: FastMCP) {
   server.addTool({
@@ -66,7 +67,8 @@ export function register(server: FastMCP) {
           supportsAllDrives: true,
           fields: 'id,type,role,emailAddress,domain,allowFileDiscovery',
         });
-        return JSON.stringify(response.data, null, 2);
+        const indexSync = await syncDriveIndexFile(args.fileId);
+        return JSON.stringify({ ...response.data, indexSync }, null, 2);
       } catch (error: any) {
         log.error(`Error setting permission: ${error.message || error}`);
         if (error.code === 404) throw new UserError('File not found. Check the file ID.');

@@ -33,7 +33,7 @@ Use `mcp__google_docs_mcp` Slides tools for personal Google Slides. Use Drive to
 - For simple data slides, create a native table with `createSlideTable`, then fill it with `writeSlideTableCells`.
 - For analytical decks, create charts in Sheets first, then embed them with `createSheetsChartOnSlide`.
 - For template-style work, first inspect placeholders with `readPresentation`; richer placeholder replacement is planned but not exposed yet.
-- For files the user will revisit often, update the Drive index after creating or meaningfully editing the presentation.
+- `createPresentation` returns `indexSync` when the server has Drive index auto-sync enabled. For files the user will revisit often, use the Drive index tools when auto-sync is unavailable.
 
 ## Known Gaps
 

@@ -174,18 +174,17 @@ MCP_DRIVE_INDEX_AUTO_UPDATE=false
 MCP_DRIVE_INDEX_DOCUMENT_ID=
 ```
 
-Implement `src/tools/drive/indexSync.ts`:
+Implemented first pass in `src/tools/drive/driveIndex.ts`:
 
-- A post-write hook receives a typed event: create, copy, rename, move, trash, restore, permission change, or content update.
-- When enabled and an index ID is configured, fetch current file metadata and call the existing index upsert logic.
-- Trashed files are marked as trashed or removed according to one documented policy; do not silently erase user notes.
-- Index-update failure must not make the primary Google operation appear to have failed. Return `indexSync: {status, error?}` with the tool result.
-- Prevent recursion when the modified file is the index document itself.
+- `syncDriveIndexFile(fileId, { notes? })` updates one row when `MCP_DRIVE_INDEX_AUTO_UPDATE=true` and `MCP_DRIVE_INDEX_DOCUMENT_ID` is configured.
+- Existing Notes cells are preserved by default; trash operations intentionally replace the note with `[trashed]`.
+- Index-update failure does not make the primary Google operation fail. Mutating tools return `indexSync: {status, error?}` with the tool result.
+- Recursion is prevented when the modified file is the index document itself.
 
 Delivery stages:
 
-1. Integrate file lifecycle tools: create, copy, rename, move, trash, restore, and sharing.
-2. Integrate Docs, Sheets, and Slides creation tools.
+1. Done: integrate file lifecycle tools for folder/doc creation, copy, rename, move, trash, and sharing.
+2. Done: integrate Docs, Sheets, and Slides creation tools.
 3. Mark content edits with a lightweight modified-time refresh rather than rebuilding the full index.
 4. Add `refreshDriveIndexIncremental` using Drive Changes page tokens stored inside the index document metadata section. This remains user-triggered or scheduled by the MCP client; no background worker is required.
 

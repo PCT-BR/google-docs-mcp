@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { drive_v3 } from 'googleapis';
 import { getDriveClient, getDocsClient } from '../../clients.js';
 import { insertMarkdown, formatInsertResult } from '../../markdown-transformer/index.js';
+import { syncDriveIndexFile } from './driveIndex.js';
 
 export function register(server: FastMCP) {
   server.addTool({
@@ -98,12 +99,14 @@ export function register(server: FastMCP) {
           }
         }
 
+        const indexSync = await syncDriveIndexFile(document.id);
         return JSON.stringify(
           {
             id: document.id,
             name: document.name,
             url: document.webViewLink,
             contentInserted,
+            indexSync,
           },
           null,
           2

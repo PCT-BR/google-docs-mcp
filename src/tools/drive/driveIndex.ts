@@ -23,6 +23,15 @@ export interface DriveIndexEntry {
   notes?: string;
 }
 
+export interface DriveIndexSyncResult {
+  status: 'disabled' | 'skipped' | 'updated' | 'error';
+  reason?: string;
+  error?: string;
+  indexDocumentId?: string;
+  fileId?: string;
+  name?: string;
+}
+
 function sectionForMimeType(mimeType: string) {
   if (mimeType === FOLDER_MIME_TYPE) return 'Folders';
   if (mimeType === DOC_MIME_TYPE) return 'Google Docs';
@@ -67,6 +76,48 @@ function rowForEntry(entry: DriveIndexEntry) {
   )} | ${escapeCell(entry.parents?.join(',') || 'root')} | ${escapeCell(
     entry.modifiedTime
   )} | ${escapeCell(entry.notes)} |`;
+}
+
+function splitMarkdownTableRow(line: string) {
+  const cells: string[] = [];
+  let current = '';
+  let escaped = false;
+
+  for (const char of line.trim()) {
+    if (escaped) {
+      current += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+
+    if (char === '|') {
+      cells.push(current.trim());
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  cells.push(current.trim());
+  return cells.filter((cell, index) => !(index === 0 || index === cells.length - 1) || cell);
+}
+
+export function findDriveIndexEntryNotes(markdown: string, fileId: string) {
+  for (const line of markdown.split(/\r?\n/)) {
+    if (!line.startsWith('|') || line.includes('---')) continue;
+    const cells = splitMarkdownTableRow(line);
+    const idIndex = cells.findIndex((cell) => cell === fileId);
+    if (idIndex < 0 || cells.length < 5) continue;
+    return cells[cells.length - 1] || undefined;
+  }
+
+  return undefined;
 }
 
 export function buildDriveIndexMarkdown(entries: DriveIndexEntry[], refreshedAt = new Date()) {
@@ -144,7 +195,9 @@ export function searchDriveIndexMarkdown(markdown: string, query: string, maxRes
 export function upsertDriveIndexEntry(markdown: string, entry: DriveIndexEntry) {
   const newRow = rowForEntry(entry);
   const lines = markdown.split(/\r?\n/);
-  const idPattern = new RegExp(`\\|[^\\n]*\\s${entry.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s[^\\n]*\\|`);
+  const idPattern = new RegExp(
+    `\\|[^\\n]*\\s${entry.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s[^\\n]*\\|`
+  );
 
   const existingIndex = lines.findIndex((line) => idPattern.test(line));
   if (existingIndex >= 0) {
@@ -175,11 +228,81 @@ export function upsertDriveIndexEntry(markdown: string, entry: DriveIndexEntry) 
   return lines.join('\n');
 }
 
-async function findIndexDocument(
-  drive: drive_v3.Drive,
-  title: string,
-  parentFolderId?: string
-) {
+export async function syncDriveIndexFile(
+  fileId: string | null | undefined,
+  options: { notes?: string } = {}
+): Promise<DriveIndexSyncResult> {
+  if (process.env.MCP_DRIVE_INDEX_AUTO_UPDATE !== 'true') {
+    return {
+      status: 'disabled',
+      reason: 'MCP_DRIVE_INDEX_AUTO_UPDATE is not true',
+      fileId: fileId ?? undefined,
+    };
+  }
+
+  if (!fileId) {
+    return { status: 'skipped', reason: 'No file ID returned by Google Drive' };
+  }
+
+  const indexDocumentId = process.env.MCP_DRIVE_INDEX_DOCUMENT_ID;
+  if (!indexDocumentId) {
+    return {
+      status: 'skipped',
+      reason: 'MCP_DRIVE_INDEX_DOCUMENT_ID is not configured',
+      fileId,
+    };
+  }
+
+  if (fileId === indexDocumentId) {
+    return {
+      status: 'skipped',
+      reason: 'Refusing to recursively sync the index document itself',
+      indexDocumentId,
+      fileId,
+    };
+  }
+
+  try {
+    const drive = await getDriveClient();
+    const docs = await getDocsClient();
+    const fileResponse = await drive.files.get({
+      fileId,
+      fields: 'id,name,mimeType,modifiedTime,webViewLink,parents',
+      supportsAllDrives: true,
+    });
+
+    const entry = toEntry(fileResponse.data);
+    if (!entry) {
+      return {
+        status: 'skipped',
+        reason: 'File metadata was incomplete',
+        indexDocumentId,
+        fileId,
+      };
+    }
+
+    const markdown = await readIndexMarkdown(drive, indexDocumentId);
+    entry.notes = options.notes ?? findDriveIndexEntryNotes(markdown, entry.id);
+    const updated = upsertDriveIndexEntry(markdown, entry);
+    await replaceIndexMarkdown(docs, indexDocumentId, updated);
+
+    return {
+      status: 'updated',
+      indexDocumentId,
+      fileId: entry.id,
+      name: entry.name,
+    };
+  } catch (error: any) {
+    return {
+      status: 'error',
+      error: error?.message || String(error),
+      indexDocumentId,
+      fileId,
+    };
+  }
+}
+
+async function findIndexDocument(drive: drive_v3.Drive, title: string, parentFolderId?: string) {
   const conditions = [
     'trashed=false',
     `name='${escapeDriveQuery(title)}'`,
@@ -319,7 +442,8 @@ function registerFindOrCreateDriveIndex(server: FastMCP) {
 
       try {
         const existing = await findIndexDocument(drive, args.title, args.parentFolderId);
-        const file = existing ?? (await createIndexDocument(drive, docs, args.title, args.parentFolderId));
+        const file =
+          existing ?? (await createIndexDocument(drive, docs, args.title, args.parentFolderId));
         return JSON.stringify(
           {
             id: file.id,
@@ -333,7 +457,9 @@ function registerFindOrCreateDriveIndex(server: FastMCP) {
       } catch (error: any) {
         log.error(`Error finding/creating Drive index: ${error.message || error}`);
         if (error instanceof UserError) throw error;
-        throw new UserError(`Failed to find or create Drive index: ${error.message || 'Unknown error'}`);
+        throw new UserError(
+          `Failed to find or create Drive index: ${error.message || 'Unknown error'}`
+        );
       }
     },
   });
@@ -342,7 +468,8 @@ function registerFindOrCreateDriveIndex(server: FastMCP) {
 function registerReadDriveIndex(server: FastMCP) {
   server.addTool({
     name: 'readDriveIndex',
-    description: 'Reads the Drive index Google Doc as Markdown. Finds it by title if documentId is omitted.',
+    description:
+      'Reads the Drive index Google Doc as Markdown. Finds it by title if documentId is omitted.',
     parameters: indexLookupParams.extend({
       documentId: z
         .string()
@@ -509,7 +636,9 @@ function registerUpdateDriveIndexEntry(server: FastMCP) {
       } catch (error: any) {
         log.error(`Error updating Drive index entry: ${error.message || error}`);
         if (error instanceof UserError) throw error;
-        throw new UserError(`Failed to update Drive index entry: ${error.message || 'Unknown error'}`);
+        throw new UserError(
+          `Failed to update Drive index entry: ${error.message || 'Unknown error'}`
+        );
       }
     },
   });

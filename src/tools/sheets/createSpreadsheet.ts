@@ -5,6 +5,7 @@ import { drive_v3 } from 'googleapis';
 import { getDriveClient, getSheetsClient } from '../../clients.js';
 import * as SheetsHelpers from '../../googleSheetsApiHelpers.js';
 import { SpreadsheetCellValueSchema } from '../../types.js';
+import { syncDriveIndexFile } from '../drive/driveIndex.js';
 
 export function register(server: FastMCP) {
   server.addTool({
@@ -72,12 +73,14 @@ export function register(server: FastMCP) {
           }
         }
 
+        const indexSync = await syncDriveIndexFile(spreadsheetId);
         return JSON.stringify(
           {
             id: spreadsheetId,
             name: driveResponse.data.name,
             url: driveResponse.data.webViewLink,
             ...(initialDataStatus ? { initialData: initialDataStatus } : {}),
+            indexSync,
           },
           null,
           2

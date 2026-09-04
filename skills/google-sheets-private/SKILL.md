@@ -46,7 +46,7 @@ Use `mcp__google_docs_mcp` Sheets tools for personal Google Sheets. Use Drive to
 
 ## Drive Index Coordination
 
-When creating, renaming, moving, or substantially updating a user-facing Sheet, update the Drive index if the user maintains one. The Drive index instructions live in `google-drive-private`.
+`createSpreadsheet` returns `indexSync` when the server has Drive index auto-sync enabled. For renames, moves, sharing, or manual index work, use the Drive tools; the Drive index instructions live in `google-drive-private`.
 
 ## Known Gaps
 

@@ -2,6 +2,7 @@ import type { FastMCP } from 'fastmcp';
 import { UserError } from 'fastmcp';
 import { z } from 'zod';
 import { getDriveClient } from '../../clients.js';
+import { syncDriveIndexFile } from './driveIndex.js';
 
 export function register(server: FastMCP) {
   server.addTool({
@@ -46,6 +47,11 @@ export function register(server: FastMCP) {
               fileName,
               type: isFolder ? 'folder' : 'file',
               message: `Permanently deleted ${isFolder ? 'folder' : 'file'} "${fileName}".`,
+              indexSync: {
+                status: 'skipped',
+                reason: 'Permanent deletion cannot be auto-indexed safely after deletion',
+                fileId: args.fileId,
+              },
             },
             null,
             2
@@ -58,6 +64,7 @@ export function register(server: FastMCP) {
             },
             supportsAllDrives: true,
           });
+          const indexSync = await syncDriveIndexFile(args.fileId, { notes: '[trashed]' });
           return JSON.stringify(
             {
               success: true,
@@ -66,6 +73,7 @@ export function register(server: FastMCP) {
               fileName,
               type: isFolder ? 'folder' : 'file',
               message: `Moved ${isFolder ? 'folder' : 'file'} "${fileName}" to trash. It can be restored from the trash.`,
+              indexSync,
             },
             null,
             2

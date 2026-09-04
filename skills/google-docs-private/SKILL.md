@@ -45,7 +45,7 @@ Use `mcp__google_docs_mcp` Docs tools for personal Google Docs. Use Drive tools 
 
 ## Drive Index Coordination
 
-When creating, renaming, moving, or substantially updating a user-facing Doc, update the Drive index if the user maintains one. The Drive index instructions live in `google-drive-private`.
+`createDocument` returns `indexSync` when the server has Drive index auto-sync enabled. For renames, moves, sharing, or manual index work, use the Drive tools; content edits do not yet auto-refresh the index. The Drive index instructions live in `google-drive-private`.
 
 ## Known Gaps
 

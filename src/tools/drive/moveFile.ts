@@ -2,6 +2,7 @@ import type { FastMCP } from 'fastmcp';
 import { UserError } from 'fastmcp';
 import { z } from 'zod';
 import { getDriveClient } from '../../clients.js';
+import { syncDriveIndexFile } from './driveIndex.js';
 
 export function register(server: FastMCP) {
   server.addTool({
@@ -50,7 +51,19 @@ export function register(server: FastMCP) {
         const response = await drive.files.update(updateParams);
 
         const action = args.removeFromAllParents ? 'moved' : 'copied';
-        return `Successfully ${action} "${fileName}" to new location.\nFile ID: ${response.data.id}`;
+        const indexSync = await syncDriveIndexFile(response.data.id);
+        return JSON.stringify(
+          {
+            id: response.data.id,
+            name: response.data.name,
+            parents: response.data.parents,
+            action,
+            message: `Successfully ${action} "${fileName}" to new location.`,
+            indexSync,
+          },
+          null,
+          2
+        );
       } catch (error: any) {
         log.error(`Error moving file: ${error.message || error}`);
         if (error.code === 404)

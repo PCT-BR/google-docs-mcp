@@ -41,3 +41,5 @@ Use `mcp__google_docs_mcp` Drive tools for the user's private Google Drive. This
 ## Drive Index
 
 Use an index document when the user wants easier personal Drive navigation or repeated searches. Read [references/drive-index.md](references/drive-index.md) before creating, refreshing, or using the index.
+
+When the server has `MCP_DRIVE_INDEX_AUTO_UPDATE=true` and `MCP_DRIVE_INDEX_DOCUMENT_ID=<index-doc-id>`, supported Drive lifecycle tools return `indexSync` and update the index after create, copy, rename, move, trash, folder creation, and sharing operations. Treat `indexSync.status="error"` as an index maintenance issue only; the primary Drive operation already succeeded.

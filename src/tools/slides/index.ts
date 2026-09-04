@@ -2,6 +2,7 @@ import type { FastMCP } from 'fastmcp';
 import { UserError } from 'fastmcp';
 import { z } from 'zod';
 import { getSlidesClient } from '../../clients.js';
+import { syncDriveIndexFile } from '../drive/driveIndex.js';
 
 const presentationIdParam = z
   .string()
@@ -84,7 +85,10 @@ export function registerSlidesTools(server: FastMCP) {
         const response = await slides.presentations.create({
           requestBody: { title: args.title },
         });
-        return stringify(summarizePresentation(response.data));
+        return stringify({
+          ...summarizePresentation(response.data),
+          indexSync: await syncDriveIndexFile(response.data.presentationId),
+        });
       } catch (error: any) {
         log.error(`Error creating presentation: ${error.message || error}`);
         if (error instanceof UserError) throw error;

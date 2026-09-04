@@ -3,6 +3,7 @@ import { UserError } from 'fastmcp';
 import { z } from 'zod';
 import { drive_v3 } from 'googleapis';
 import { getDriveClient } from '../../clients.js';
+import { syncDriveIndexFile } from './driveIndex.js';
 
 export function register(server: FastMCP) {
   server.addTool({
@@ -39,11 +40,13 @@ export function register(server: FastMCP) {
         });
 
         const folder = response.data;
+        const indexSync = await syncDriveIndexFile(folder.id);
         return JSON.stringify(
           {
             id: folder.id,
             name: folder.name,
             url: folder.webViewLink,
+            indexSync,
           },
           null,
           2
