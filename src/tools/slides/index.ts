@@ -1,7 +1,7 @@
 import type { FastMCP } from 'fastmcp';
 import { UserError } from 'fastmcp';
 import { z } from 'zod';
-import { getSlidesClient } from '../../clients.js';
+import { getDriveClient, getSlidesClient } from '../../clients.js';
 import { syncDriveIndexFile } from '../drive/driveIndex.js';
 
 const presentationIdParam = z
@@ -153,9 +153,14 @@ function summarizePresentation(presentation: any) {
 export function registerSlidesTools(server: FastMCP) {
   server.addTool({
     name: 'createPresentation',
-    description: 'Creates a new Google Slides presentation in the authenticated user’s Drive.',
+    description:
+      'Creates a new Google Slides presentation in the authenticated user’s Drive, optionally moving it into a Drive folder.',
     parameters: z.strictObject({
       title: z.string().min(1).describe('Presentation title.'),
+      parentFolderId: z
+        .string()
+        .optional()
+        .describe('Optional Drive folder ID where the new presentation should be moved.'),
     }),
     execute: async (args, { log }) => {
       const slides = await getSlidesClient();
@@ -164,6 +169,21 @@ export function registerSlidesTools(server: FastMCP) {
         const response = await slides.presentations.create({
           requestBody: { title: args.title },
         });
+        if (args.parentFolderId && response.data.presentationId) {
+          const drive = await getDriveClient();
+          const file = await drive.files.get({
+            fileId: response.data.presentationId,
+            fields: 'parents',
+            supportsAllDrives: true,
+          });
+          await drive.files.update({
+            fileId: response.data.presentationId,
+            addParents: args.parentFolderId,
+            removeParents: file.data.parents?.join(','),
+            fields: 'id,parents',
+            supportsAllDrives: true,
+          });
+        }
         return stringify({
           ...summarizePresentation(response.data),
           indexSync: await syncDriveIndexFile(response.data.presentationId),
@@ -317,6 +337,135 @@ export function registerSlidesTools(server: FastMCP) {
         log.error(`Error creating slide: ${error.message || error}`);
         if (error instanceof UserError) throw error;
         throw new UserError(`Failed to create slide: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'duplicateSlide',
+    description:
+      'Duplicates one slide. If insertionIndex is provided, the duplicate is moved to that position.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      slideObjectId: z.string().min(1).describe('Slide object ID to duplicate.'),
+      objectId: objectIdParam.optional().describe('Optional object ID for the duplicated slide.'),
+      insertionIndex: z.number().int().min(0).optional(),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Duplicating slide ${args.slideObjectId}`);
+      try {
+        const duplicatedSlideObjectId =
+          args.objectId ?? `slide_${Date.now().toString(36).slice(-10)}`;
+        const requests: any[] = [
+          {
+            duplicateObject: {
+              objectId: args.slideObjectId,
+              objectIds: {
+                [args.slideObjectId]: duplicatedSlideObjectId,
+              },
+            },
+          },
+        ];
+        if (typeof args.insertionIndex === 'number') {
+          requests.push({
+            updateSlidesPosition: {
+              slideObjectIds: [duplicatedSlideObjectId],
+              insertionIndex: args.insertionIndex,
+            },
+          });
+        }
+
+        const response = await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: { requests },
+        });
+        return stringify({
+          sourceSlideObjectId: args.slideObjectId,
+          duplicatedSlideObjectId,
+          duplicate: response.data.replies?.[0]?.duplicateObject,
+          insertionIndex: args.insertionIndex ?? null,
+        });
+      } catch (error: any) {
+        log.error(`Error duplicating slide: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to duplicate slide: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'moveSlides',
+    description: 'Moves one or more slides to a new insertion index.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      slideObjectIds: z.array(z.string().min(1)).min(1),
+      insertionIndex: z.number().int().min(0),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Moving ${args.slideObjectIds.length} slides`);
+      try {
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                updateSlidesPosition: {
+                  slideObjectIds: args.slideObjectIds,
+                  insertionIndex: args.insertionIndex,
+                },
+              },
+            ],
+          },
+        });
+        return stringify({
+          slideObjectIds: args.slideObjectIds,
+          insertionIndex: args.insertionIndex,
+        });
+      } catch (error: any) {
+        log.error(`Error moving slides: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to move slides: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'setSlideSkipped',
+    description: 'Marks a slide as skipped or visible during presentation playback.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      slideObjectId: z.string().min(1).describe('Slide object ID to update.'),
+      isSkipped: z.boolean(),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Setting slide ${args.slideObjectId} skipped=${args.isSkipped}`);
+      try {
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                updateSlideProperties: {
+                  objectId: args.slideObjectId,
+                  slideProperties: {
+                    isSkipped: args.isSkipped,
+                  },
+                  fields: 'isSkipped',
+                },
+              },
+            ],
+          },
+        });
+        return stringify({ slideObjectId: args.slideObjectId, isSkipped: args.isSkipped });
+      } catch (error: any) {
+        log.error(`Error setting slide skipped state: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(
+          `Failed to set slide skipped state: ${error.message || 'Unknown error'}`
+        );
       }
     },
   });

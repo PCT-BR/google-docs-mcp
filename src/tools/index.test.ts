@@ -153,6 +153,9 @@ describe('registerAllTools', () => {
     expect(toolNames).toContain('getSlide');
     expect(toolNames).toContain('getSlideThumbnail');
     expect(toolNames).toContain('createSlide');
+    expect(toolNames).toContain('duplicateSlide');
+    expect(toolNames).toContain('moveSlides');
+    expect(toolNames).toContain('setSlideSkipped');
     expect(toolNames).toContain('deleteSlideObject');
     expect(toolNames).toContain('createTextBox');
     expect(toolNames).toContain('createShape');

@@ -249,16 +249,16 @@ Deployment:
 
 Create:
 
-- `createPresentation(title, parentFolderId?)`
+- Done: `createPresentation(title, parentFolderId?)`
 - `getPresentation(presentationId, includeMasters?, includeLayouts?, includeNotes?)`
 - `listSlides(presentationId)`
 - `getSlide(presentationId, slideObjectId)`
 - `getSlideThumbnail(presentationId, slideObjectId, size?)`
-- `createSlide(presentationId, layout?, insertionIndex?)`
-- `duplicateSlide(presentationId, slideObjectId, insertionIndex?)`
-- `moveSlides(presentationId, slideObjectIds, insertionIndex)`
-- `deleteSlide(presentationId, slideObjectId)`
-- `setSlideSkipped(presentationId, slideObjectId, isSkipped)`
+- Done: `createSlide(presentationId, layout?, insertionIndex?)`
+- Done: `duplicateSlide(presentationId, slideObjectId, insertionIndex?)`
+- Done: `moveSlides(presentationId, slideObjectIds, insertionIndex)`
+- Done: `deleteSlideObject(presentationId, objectId)`
+- Done: `setSlideSkipped(presentationId, slideObjectId, isSkipped)`
 
 Add a normalized `readPresentation` response for agents:
 

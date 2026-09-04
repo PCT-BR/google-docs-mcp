@@ -18,7 +18,7 @@ Use `mcp__google_docs_mcp` Slides tools for personal Google Slides. Use Drive to
 ## Main Tools
 
 - Presentation lifecycle: `createPresentation`, `readPresentation`.
-- Slides: `listSlides`, `getSlide`, `getSlideThumbnail`, `createSlide`, `deleteSlideObject`.
+- Slides: `listSlides`, `getSlide`, `getSlideThumbnail`, `createSlide`, `duplicateSlide`, `moveSlides`, `setSlideSkipped`, `deleteSlideObject`.
 - Text: `createTextBox`, `insertSlideText`, `replaceAllSlideText`, `deleteSlideText`, `updateSlideTextStyle`, `updateSlideParagraphStyle`, `createSlideBullets`, `deleteSlideBullets`.
 - Shapes and layout: `createShape`, `updateShapeProperties`, `updatePageElementTransform`, `updatePageBackground`, `createLine`, `updateLineProperties`, `groupSlideObjects`, `ungroupSlideObjects`, `updateSlideObjectZOrder`, `updateSlideObjectAltText`.
 - Images: `createSlideImage`.
@@ -29,6 +29,8 @@ Use `mcp__google_docs_mcp` Slides tools for personal Google Slides. Use Drive to
 ## Patterns
 
 - For a new simple deck, create the presentation, create the needed slides, then add text boxes and images by slide ID.
+- Use `parentFolderId` in `createPresentation` when the deck should live in a specific Drive folder.
+- Use `duplicateSlide` for templated slide variants, then `moveSlides` to reorder if needed.
 - For template placeholders, use `replaceAllSlideText` with `pageObjectIds` when only selected slides should change.
 - For text styling, use explicit object IDs and `textRange`; use `cellLocation` only when editing table-cell text.
 - Use points for shape, line, and transform coordinates.
