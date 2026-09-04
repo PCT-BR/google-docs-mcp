@@ -149,9 +149,13 @@ describe('registerAllTools', () => {
     expect(toolNames).toContain('createPresentation');
     expect(toolNames).toContain('readPresentation');
     expect(toolNames).toContain('listSlides');
+    expect(toolNames).toContain('getSlide');
+    expect(toolNames).toContain('getSlideThumbnail');
     expect(toolNames).toContain('createSlide');
     expect(toolNames).toContain('deleteSlideObject');
     expect(toolNames).toContain('createTextBox');
+    expect(toolNames).toContain('setSpeakerNotes');
+    expect(toolNames).toContain('appendSpeakerNotes');
     expect(toolNames).toContain('createSlideImage');
     expect(toolNames).not.toContain('readDocument');
   });

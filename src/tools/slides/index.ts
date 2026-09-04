@@ -141,6 +141,60 @@ export function registerSlidesTools(server: FastMCP) {
   });
 
   server.addTool({
+    name: 'getSlide',
+    description:
+      'Reads one Google Slides page by slide object ID, including page elements and speaker notes metadata.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      pageObjectId: z.string().min(1).describe('Slide object ID to read.'),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Reading slide ${args.pageObjectId}`);
+      try {
+        const response = await slides.presentations.pages.get({
+          presentationId: args.presentationId,
+          pageObjectId: args.pageObjectId,
+        });
+        return stringify(response.data);
+      } catch (error: any) {
+        log.error(`Error reading slide: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to read slide: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'getSlideThumbnail',
+    description:
+      'Gets a temporary thumbnail URL for one slide. The URL is account-scoped and normally valid for about 30 minutes.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      pageObjectId: z.string().min(1).describe('Slide object ID to render as a thumbnail.'),
+      mimeType: z.enum(['PNG', 'JPEG']).optional().default('PNG'),
+      thumbnailSize: z.enum(['SMALL', 'MEDIUM', 'LARGE']).optional().default('LARGE'),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Getting thumbnail for slide ${args.pageObjectId}`);
+      try {
+        const response = await slides.presentations.pages.getThumbnail({
+          presentationId: args.presentationId,
+          pageObjectId: args.pageObjectId,
+          'thumbnailProperties.mimeType': args.mimeType,
+          'thumbnailProperties.thumbnailSize': args.thumbnailSize,
+        });
+        return stringify(response.data);
+      } catch (error: any) {
+        log.error(`Error getting slide thumbnail: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to get slide thumbnail: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
     name: 'createSlide',
     description: 'Creates a new slide, blank by default, optionally at a specific insertion index.',
     parameters: z.strictObject({
@@ -271,6 +325,107 @@ export function registerSlidesTools(server: FastMCP) {
         log.error(`Error creating text box: ${error.message || error}`);
         if (error instanceof UserError) throw error;
         throw new UserError(`Failed to create text box: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'setSpeakerNotes',
+    description:
+      'Replaces speaker notes text for a slide. The notes page itself is read-only, but its speaker-notes shape text is editable.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      speakerNotesObjectId: z
+        .string()
+        .min(1)
+        .describe('Speaker notes object ID from listSlides/readPresentation/getSlide.'),
+      text: z.string().describe('New speaker notes text. Use an empty string to clear notes.'),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Setting speaker notes ${args.speakerNotesObjectId}`);
+      try {
+        const requests: any[] = [
+          {
+            deleteText: {
+              objectId: args.speakerNotesObjectId,
+              textRange: { type: 'ALL' },
+            },
+          },
+        ];
+
+        if (args.text.length > 0) {
+          requests.push({
+            insertText: {
+              objectId: args.speakerNotesObjectId,
+              insertionIndex: 0,
+              text: args.text,
+            },
+          });
+        }
+
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: { requests },
+        });
+        return stringify({
+          speakerNotesObjectId: args.speakerNotesObjectId,
+          characterCount: args.text.length,
+        });
+      } catch (error: any) {
+        log.error(`Error setting speaker notes: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to set speaker notes: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'appendSpeakerNotes',
+    description:
+      'Appends text to a slide speaker-notes shape. Use setSpeakerNotes when replacing all notes.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      speakerNotesObjectId: z
+        .string()
+        .min(1)
+        .describe('Speaker notes object ID from listSlides/readPresentation/getSlide.'),
+      text: z.string().min(1).describe('Speaker notes text to append.'),
+      insertionIndex: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe(
+          'Optional insertion index. Defaults to 0 because Slides notes shapes may be empty.'
+        ),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Appending speaker notes ${args.speakerNotesObjectId}`);
+      try {
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                insertText: {
+                  objectId: args.speakerNotesObjectId,
+                  insertionIndex: args.insertionIndex ?? 0,
+                  text: args.text,
+                },
+              },
+            ],
+          },
+        });
+        return stringify({
+          speakerNotesObjectId: args.speakerNotesObjectId,
+          insertedCharacters: args.text.length,
+        });
+      } catch (error: any) {
+        log.error(`Error appending speaker notes: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to append speaker notes: ${error.message || 'Unknown error'}`);
       }
     },
   });

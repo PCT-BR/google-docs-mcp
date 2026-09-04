@@ -9,7 +9,7 @@ Use `mcp__google_docs_mcp` Slides tools for personal Google Slides. Use Drive to
 
 ## Defaults
 
-- Start existing-presentation work with `readPresentation` or `listSlides` to get slide object IDs.
+- Start existing-presentation work with `readPresentation` or `listSlides` to get slide and speaker-notes object IDs.
 - Use exact slide/page-element object IDs for edits and deletion.
 - Ask before deleting a slide or page element unless the user explicitly identifies the target.
 - Verify writes with `readPresentation` or `listSlides`.
@@ -18,16 +18,19 @@ Use `mcp__google_docs_mcp` Slides tools for personal Google Slides. Use Drive to
 ## Main Tools
 
 - Presentation lifecycle: `createPresentation`, `readPresentation`.
-- Slides: `listSlides`, `createSlide`, `deleteSlideObject`.
+- Slides: `listSlides`, `getSlide`, `getSlideThumbnail`, `createSlide`, `deleteSlideObject`.
 - Text and shapes: `createTextBox`.
 - Images: `createSlideImage`.
+- Speaker notes: `setSpeakerNotes`, `appendSpeakerNotes`.
 
 ## Patterns
 
 - For a new simple deck, create the presentation, create the needed slides, then add text boxes and images by slide ID.
+- For visual checks, use `getSlideThumbnail`; it returns a temporary account-scoped URL.
+- For presenter scripts, use `setSpeakerNotes` with the speaker notes object ID from `listSlides` or `readPresentation`.
 - For template-style work, first inspect placeholders with `readPresentation`; richer placeholder replacement is planned but not exposed yet.
 - For files the user will revisit often, update the Drive index after creating or meaningfully editing the presentation.
 
 ## Known Gaps
 
-This MCP does not yet expose rich text styling, speaker notes editing, tables, charts from Sheets, template placeholder replacement, thumbnails, video, grouping, or z-order controls for Slides.
+This MCP does not yet expose rich text styling, tables, charts from Sheets, template placeholder replacement, video, grouping, or z-order controls for Slides.

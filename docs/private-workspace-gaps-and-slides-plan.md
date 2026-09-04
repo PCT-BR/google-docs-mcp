@@ -14,22 +14,22 @@ Target deployment: private personal Google account on Railway, without Firestore
 
 ## Feasibility Summary
 
-| Area   | Gap                                                   | Feasibility                                                  | Delivery rule                                                 |
-| ------ | ----------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------- |
-| Docs   | Read suggestions and accepted/rejected previews       | Stable                                                       | Implemented first pass                                        |
-| Docs   | Create, accept, reject, or delete suggestions         | Developer Preview                                            | Feature flag; do not require for private free account         |
-| Docs   | Replace images and delete positioned objects          | Stable                                                       | Implemented first pass                                        |
-| Docs   | Rich content in header/footer/footnote segments       | Stable with segment constraints                              | Refactor Markdown targeting and reject unsupported constructs |
-| Drive  | Revisions and historical exports                      | Stable, but history may be incomplete                        | Implemented first pass with explicit limitations              |
-| Drive  | Generic comments and anchors                          | Stable, but editor apps display custom anchors as unanchored | Implemented generic file tools with honest descriptions       |
-| Drive  | Automatic Drive index maintenance                     | Application feature                                          | Implement opt-in post-write synchronization                   |
-| Sheets | Pivot tables                                          | Stable                                                       | Implemented first pass around the anchor cell                 |
-| Sheets | Named ranges                                          | Stable                                                       | Implemented first pass                                        |
-| Sheets | Trim whitespace                                       | Stable                                                       | Implemented first pass                                        |
-| Sheets | Text to columns                                       | Stable                                                       | Implemented first pass                                        |
-| Sheets | Native cell comments                                  | Developer Preview                                            | Optional; retain cell notes and Drive-comment fallback        |
-| Slides | Core creation, reading, editing, media, tables, notes | Stable                                                       | Initial tool group implemented; continue richer editing       |
-| Slides | Animations, transitions, notes-master editing         | Not exposed by the public API                                | Document as hard limitations                                  |
+| Area   | Gap                                                   | Feasibility                                                  | Delivery rule                                                    |
+| ------ | ----------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------- |
+| Docs   | Read suggestions and accepted/rejected previews       | Stable                                                       | Implemented first pass                                           |
+| Docs   | Create, accept, reject, or delete suggestions         | Developer Preview                                            | Feature flag; do not require for private free account            |
+| Docs   | Replace images and delete positioned objects          | Stable                                                       | Implemented first pass                                           |
+| Docs   | Rich content in header/footer/footnote segments       | Stable with segment constraints                              | Refactor Markdown targeting and reject unsupported constructs    |
+| Drive  | Revisions and historical exports                      | Stable, but history may be incomplete                        | Implemented first pass with explicit limitations                 |
+| Drive  | Generic comments and anchors                          | Stable, but editor apps display custom anchors as unanchored | Implemented generic file tools with honest descriptions          |
+| Drive  | Automatic Drive index maintenance                     | Application feature                                          | Implement opt-in post-write synchronization                      |
+| Sheets | Pivot tables                                          | Stable                                                       | Implemented first pass around the anchor cell                    |
+| Sheets | Named ranges                                          | Stable                                                       | Implemented first pass                                           |
+| Sheets | Trim whitespace                                       | Stable                                                       | Implemented first pass                                           |
+| Sheets | Text to columns                                       | Stable                                                       | Implemented first pass                                           |
+| Sheets | Native cell comments                                  | Developer Preview                                            | Optional; retain cell notes and Drive-comment fallback           |
+| Slides | Core creation, reading, editing, media, tables, notes | Stable                                                       | Initial tool group plus thumbnails and speaker notes implemented |
+| Slides | Animations, transitions, notes-master editing         | Not exposed by the public API                                | Document as hard limitations                                     |
 
 Developer Preview is not a baseline dependency. Google currently requires an application to the Workspace Developer Preview Program with a Workspace account and Cloud project. The stable MCP must remain fully useful without it, including for a personal free Google account.
 
