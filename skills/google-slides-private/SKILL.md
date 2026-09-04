@@ -21,6 +21,8 @@ Use `mcp__google_docs_mcp` Slides tools for personal Google Slides. Use Drive to
 - Slides: `listSlides`, `getSlide`, `getSlideThumbnail`, `createSlide`, `deleteSlideObject`.
 - Text and shapes: `createTextBox`.
 - Images: `createSlideImage`.
+- Tables: `createSlideTable`, `writeSlideTableCells`.
+- Sheets charts: `createSheetsChartOnSlide`, `refreshSheetsChartOnSlide`.
 - Speaker notes: `setSpeakerNotes`, `appendSpeakerNotes`.
 
 ## Patterns
@@ -28,9 +30,11 @@ Use `mcp__google_docs_mcp` Slides tools for personal Google Slides. Use Drive to
 - For a new simple deck, create the presentation, create the needed slides, then add text boxes and images by slide ID.
 - For visual checks, use `getSlideThumbnail`; it returns a temporary account-scoped URL.
 - For presenter scripts, use `setSpeakerNotes` with the speaker notes object ID from `listSlides` or `readPresentation`.
+- For simple data slides, create a native table with `createSlideTable`, then fill it with `writeSlideTableCells`.
+- For analytical decks, create charts in Sheets first, then embed them with `createSheetsChartOnSlide`.
 - For template-style work, first inspect placeholders with `readPresentation`; richer placeholder replacement is planned but not exposed yet.
 - For files the user will revisit often, update the Drive index after creating or meaningfully editing the presentation.
 
 ## Known Gaps
 
-This MCP does not yet expose rich text styling, tables, charts from Sheets, template placeholder replacement, video, grouping, or z-order controls for Slides.
+This MCP does not yet expose rich text styling, template placeholder replacement, video, grouping, or z-order controls for Slides.

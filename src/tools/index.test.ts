@@ -157,6 +157,10 @@ describe('registerAllTools', () => {
     expect(toolNames).toContain('setSpeakerNotes');
     expect(toolNames).toContain('appendSpeakerNotes');
     expect(toolNames).toContain('createSlideImage');
+    expect(toolNames).toContain('createSlideTable');
+    expect(toolNames).toContain('writeSlideTableCells');
+    expect(toolNames).toContain('createSheetsChartOnSlide');
+    expect(toolNames).toContain('refreshSheetsChartOnSlide');
     expect(toolNames).not.toContain('readDocument');
   });
 });

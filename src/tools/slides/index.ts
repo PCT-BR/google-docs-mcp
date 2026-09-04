@@ -479,4 +479,221 @@ export function registerSlidesTools(server: FastMCP) {
       }
     },
   });
+
+  server.addTool({
+    name: 'createSlideTable',
+    description: 'Creates a native table on a slide. Coordinates and size are in points.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      pageObjectId: z.string().min(1).describe('Slide object ID where the table will be added.'),
+      objectId: objectIdParam.optional(),
+      rows: z.number().int().min(1).max(50),
+      columns: z.number().int().min(1).max(20),
+      x: dimensionParam.default(72),
+      y: dimensionParam.default(120),
+      width: dimensionParam.default(480),
+      height: dimensionParam.default(240),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Creating table on slide ${args.pageObjectId}`);
+      try {
+        const response = await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                createTable: {
+                  objectId: args.objectId,
+                  rows: args.rows,
+                  columns: args.columns,
+                  elementProperties: elementProperties(
+                    args.pageObjectId,
+                    args.x,
+                    args.y,
+                    args.width,
+                    args.height
+                  ),
+                },
+              },
+            ],
+          },
+        });
+
+        return stringify({
+          table: response.data.replies?.[0]?.createTable,
+          rows: args.rows,
+          columns: args.columns,
+        });
+      } catch (error: any) {
+        log.error(`Error creating slide table: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to create slide table: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'writeSlideTableCells',
+    description:
+      'Writes plain text values into native Slides table cells. Existing text in targeted cells is replaced.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      tableObjectId: z.string().min(1).describe('Table object ID from createSlideTable/getSlide.'),
+      values: z
+        .array(z.array(z.string()))
+        .min(1)
+        .describe('2D array of text values. Row and column indexes are zero-based.'),
+      startRow: z.number().int().min(0).optional().default(0),
+      startColumn: z.number().int().min(0).optional().default(0),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Writing table cells in ${args.tableObjectId}`);
+      try {
+        const requests = args.values.flatMap((row, rowOffset) =>
+          row.flatMap((text, columnOffset) => {
+            const cellLocation = {
+              rowIndex: args.startRow + rowOffset,
+              columnIndex: args.startColumn + columnOffset,
+            };
+            return [
+              {
+                deleteText: {
+                  objectId: args.tableObjectId,
+                  cellLocation,
+                  textRange: { type: 'ALL' },
+                },
+              },
+              ...(text.length > 0
+                ? [
+                    {
+                      insertText: {
+                        objectId: args.tableObjectId,
+                        cellLocation,
+                        insertionIndex: 0,
+                        text,
+                      },
+                    },
+                  ]
+                : []),
+            ];
+          })
+        );
+
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: { requests },
+        });
+
+        return stringify({
+          tableObjectId: args.tableObjectId,
+          rowsWritten: args.values.length,
+          columnsWritten: Math.max(...args.values.map((row) => row.length)),
+        });
+      } catch (error: any) {
+        log.error(`Error writing slide table cells: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(
+          `Failed to write slide table cells: ${error.message || 'Unknown error'}`
+        );
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'createSheetsChartOnSlide',
+    description:
+      'Adds an embedded Google Sheets chart to a slide. Use linkingMode=LINKED to keep a refreshable link to the source chart.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      pageObjectId: z.string().min(1).describe('Slide object ID where the chart will be added.'),
+      spreadsheetId: z
+        .string()
+        .min(1)
+        .describe('Google Sheets spreadsheet ID containing the chart.'),
+      chartId: z.number().int().describe('Embedded chart ID from the spreadsheet.'),
+      objectId: objectIdParam.optional(),
+      linkingMode: z.enum(['LINKED', 'NOT_LINKED_IMAGE']).optional().default('LINKED'),
+      x: dimensionParam.default(72),
+      y: dimensionParam.default(120),
+      width: dimensionParam.default(480),
+      height: dimensionParam.default(300),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Creating Sheets chart on slide ${args.pageObjectId}`);
+      try {
+        const response = await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                createSheetsChart: {
+                  objectId: args.objectId,
+                  spreadsheetId: args.spreadsheetId,
+                  chartId: args.chartId,
+                  linkingMode: args.linkingMode,
+                  elementProperties: elementProperties(
+                    args.pageObjectId,
+                    args.x,
+                    args.y,
+                    args.width,
+                    args.height
+                  ),
+                },
+              },
+            ],
+          },
+        });
+
+        return stringify({
+          sheetsChart: response.data.replies?.[0]?.createSheetsChart,
+          spreadsheetId: args.spreadsheetId,
+          chartId: args.chartId,
+          linkingMode: args.linkingMode,
+        });
+      } catch (error: any) {
+        log.error(`Error creating Sheets chart on slide: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(
+          `Failed to create Sheets chart on slide: ${error.message || 'Unknown error'}`
+        );
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'refreshSheetsChartOnSlide',
+    description: 'Refreshes a linked Google Sheets chart embedded in a Slides presentation.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      chartObjectId: z.string().min(1).describe('Slides page-element object ID for the chart.'),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Refreshing Sheets chart ${args.chartObjectId}`);
+      try {
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                refreshSheetsChart: {
+                  objectId: args.chartObjectId,
+                },
+              },
+            ],
+          },
+        });
+        return stringify({ refreshedChartObjectId: args.chartObjectId });
+      } catch (error: any) {
+        log.error(`Error refreshing Sheets chart on slide: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(
+          `Failed to refresh Sheets chart on slide: ${error.message || 'Unknown error'}`
+        );
+      }
+    },
+  });
 }
