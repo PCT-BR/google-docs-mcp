@@ -32,6 +32,8 @@ interface InsertOptions {
   startIndex?: number;
   /** Target a specific tab by ID. */
   tabId?: string;
+  /** Target a Docs segment such as a header, footer, or footnote. */
+  segmentId?: string;
   /** Treat the first H1 (`# ...`) as a Google Docs TITLE instead of HEADING_1. */
   firstHeadingAsTitle?: boolean;
 }
@@ -150,12 +152,16 @@ export async function insertMarkdown(
   const overallStart = performance.now();
   const startIndex = options?.startIndex ?? 1;
   const tabId = options?.tabId;
+  const segmentId = options?.segmentId;
 
   const parseStart = performance.now();
   const conversionOptions: ConversionOptions | undefined = options?.firstHeadingAsTitle
     ? { firstHeadingAsTitle: true }
     : undefined;
-  const requests = convertMarkdownToRequests(markdown, startIndex, tabId, conversionOptions);
+  const requests = applySegmentId(
+    convertMarkdownToRequests(markdown, startIndex, tabId, conversionOptions),
+    segmentId
+  );
   const parseElapsedMs = Math.round(performance.now() - parseStart);
 
   // Count requests by type
@@ -193,4 +199,42 @@ export async function insertMarkdown(
     batchUpdate,
     totalElapsedMs: Math.round(performance.now() - overallStart),
   };
+}
+
+function applySegmentId(
+  requests: docs_v1.Schema$Request[],
+  segmentId?: string
+): docs_v1.Schema$Request[] {
+  if (!segmentId) return requests;
+
+  const unsupportedRequest = requests.find(
+    (request) => request.insertTable || request.updateTableCellStyle
+  );
+  if (unsupportedRequest) {
+    throw new Error(
+      'Markdown tables and fenced code blocks are not supported inside headers, footers, or footnotes.'
+    );
+  }
+
+  const attach = (value: unknown): unknown => {
+    if (!value || typeof value !== 'object') return value;
+    if (Array.isArray(value)) return value.map(attach);
+
+    const record = value as Record<string, unknown>;
+    const output: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(record)) {
+      if (
+        (key === 'location' || key === 'range' || key === 'tableStartLocation') &&
+        child &&
+        typeof child === 'object'
+      ) {
+        output[key] = { ...(attach(child) as Record<string, unknown>), segmentId };
+      } else {
+        output[key] = attach(child);
+      }
+    }
+    return output;
+  };
+
+  return attach(requests) as docs_v1.Schema$Request[];
 }

@@ -113,6 +113,7 @@ describe('registerAllTools', () => {
     expect(toolNames).toContain('listDocumentImages');
     expect(toolNames).toContain('replaceDocumentImage');
     expect(toolNames).toContain('deletePositionedObject');
+    expect(toolNames).toContain('insertSegmentMarkdown');
   });
 
   it('exposes advanced Sheets layout tools with the sheets group', () => {

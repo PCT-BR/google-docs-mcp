@@ -26,8 +26,8 @@ Use `mcp__google_docs_mcp` Docs tools for personal Google Docs. Use Drive tools 
 - Tabs: `listTabs`, `addTab`, `renameTab`.
 - Tables: `insertTable`, `insertTableWithData`, `listDocumentTables`, `getTableStructure`, `replaceTableRowData`, `deleteTableRows`, `updateTableCellStyle`, `updateTableBorders`, `updateTableColumnWidth`, `updateTableRowStyle`, `cloneTable`.
 - Rich elements: `insertImage`, `listDocumentImages`, `replaceDocumentImage`, `deletePositionedObject`, `insertDateChip`, `insertPerson`, `insertRichLink`, `insertPageBreak`, `insertSectionBreak`, `updateSectionStyle`.
-- Headers/footers: `listHeadersFooters`, `createHeader`, `createFooter`, `insertHeaderFooterText`, `deleteHeader`, `deleteFooter`.
-- Footnotes: `insertFootnote`, `listFootnotes`, `insertFootnoteText`.
+- Headers/footers: `listHeadersFooters`, `createHeader`, `createFooter`, `insertHeaderFooterText`, `insertSegmentMarkdown`, `deleteHeader`, `deleteFooter`.
+- Footnotes: `insertFootnote`, `listFootnotes`, `insertFootnoteText`, `insertSegmentMarkdown`.
 - Named ranges/templates: `createNamedRange`, `listNamedRanges`, `deleteNamedRange`, `replaceNamedRange`.
 - Page format: `getDocumentPageFormat`, `setDocumentPageFormat`.
 
@@ -39,6 +39,7 @@ Use `mcp__google_docs_mcp` Docs tools for personal Google Docs. Use Drive tools 
 - For tabs, use `listTabs` to get IDs, but verify content with `readDocument(tabId=...)`; live testing showed tab character counts can be unreliable.
 - For tables, insert known data with `insertTableWithData`, then call `listDocumentTables` before applying table operations.
 - For headers/footers, create the segment first, then insert text with `insertHeaderFooterText` using the returned segment ID.
+- For formatted header/footer/footnote content, use `insertSegmentMarkdown`; keep tables and fenced code blocks in the document body.
 - For template-like documents, create named ranges around placeholders and update later with `replaceNamedRange`.
 - For page vs pageless or document-wide margins, inspect with `getDocumentPageFormat` before `setDocumentPageFormat`.
 
@@ -48,4 +49,4 @@ When creating, renaming, moving, or substantially updating a user-facing Doc, up
 
 ## Known Gaps
 
-This MCP still does not expose suggestion/tracked-change write actions or full Markdown insertion inside header/footer/footnote segments. Suggestion write actions require Google Developer Preview support.
+This MCP still does not expose suggestion/tracked-change write actions. Suggestion write actions require Google Developer Preview support.

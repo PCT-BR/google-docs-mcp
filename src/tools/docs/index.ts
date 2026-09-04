@@ -32,6 +32,7 @@ import { register as appendTableRows } from './appendTableRows.js';
 import { register as deleteTableRows } from './deleteTableRows.js';
 import { register as suggestions } from './suggestions.js';
 import { register as objects } from './objects.js';
+import { register as segmentMarkdown } from './segmentMarkdown.js';
 
 // Sub-domains
 import { registerCommentTools } from './comments/index.js';
@@ -71,6 +72,7 @@ export function registerDocsTools(server: FastMCP) {
   deleteTableRows(server);
   suggestions(server);
   objects(server);
+  segmentMarkdown(server);
 
   // Sub-domains
   registerFormattingTools(server);
