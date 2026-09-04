@@ -273,14 +273,14 @@ Add a normalized `readPresentation` response for agents:
 
 Create text tools:
 
-- `createTextBox`
-- `insertSlideText`
-- `replaceAllSlideText`
-- `deleteSlideText`
-- `updateSlideTextStyle`
-- `updateSlideParagraphStyle`
-- `createSlideBullets`
-- `deleteSlideBullets`
+- Done: `createTextBox`
+- Done: `insertSlideText`
+- Done: `replaceAllSlideText`
+- Done: `deleteSlideText`
+- Done: `updateSlideTextStyle`
+- Done: `updateSlideParagraphStyle`
+- Done: `createSlideBullets`
+- Done: `deleteSlideBullets`
 
 Create element/layout tools:
 

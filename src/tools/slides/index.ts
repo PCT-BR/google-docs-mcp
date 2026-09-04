@@ -24,6 +24,27 @@ const shapeTypeSchema = z
   .enum(['TEXT_BOX', 'RECTANGLE', 'ROUND_RECTANGLE', 'ELLIPSE', 'TRIANGLE', 'DIAMOND'])
   .default('TEXT_BOX');
 
+const cellLocationSchema = z
+  .strictObject({
+    rowIndex: z.number().int().min(0),
+    columnIndex: z.number().int().min(0),
+  })
+  .describe('Optional table cell location when editing text inside a table cell.');
+
+const textRangeSchema = z
+  .strictObject({
+    type: z.enum(['ALL', 'FROM_START_INDEX', 'FIXED_RANGE']).optional().default('ALL'),
+    startIndex: z.number().int().min(0).optional(),
+    endIndex: z.number().int().min(0).optional(),
+  })
+  .optional()
+  .describe('Text range inside the object. Use ALL for the whole shape/table cell.');
+
+const hexColorSchema = z
+  .string()
+  .regex(/^#?[0-9a-fA-F]{6}$/)
+  .describe('RGB hex color, for example #1a73e8.');
+
 function stringify(data: unknown) {
   return JSON.stringify(data, null, 2);
 }
@@ -49,6 +70,39 @@ function elementProperties(
       unit: 'PT',
     },
   };
+}
+
+function buildTextRange(range?: { type?: string; startIndex?: number; endIndex?: number }) {
+  if (!range) return { type: 'ALL' };
+  if (range.type === 'FIXED_RANGE') {
+    if (typeof range.startIndex !== 'number' || typeof range.endIndex !== 'number') {
+      throw new UserError('FIXED_RANGE requires both startIndex and endIndex.');
+    }
+    return { type: 'FIXED_RANGE', startIndex: range.startIndex, endIndex: range.endIndex };
+  }
+  if (range.type === 'FROM_START_INDEX') {
+    if (typeof range.startIndex !== 'number') {
+      throw new UserError('FROM_START_INDEX requires startIndex.');
+    }
+    return { type: 'FROM_START_INDEX', startIndex: range.startIndex };
+  }
+  return { type: 'ALL' };
+}
+
+function rgbColor(hex: string) {
+  const normalized = hex.replace(/^#/, '');
+  return {
+    red: parseInt(normalized.slice(0, 2), 16) / 255,
+    green: parseInt(normalized.slice(2, 4), 16) / 255,
+    blue: parseInt(normalized.slice(4, 6), 16) / 255,
+  };
+}
+
+function fieldList(fields: Record<string, unknown>) {
+  return Object.entries(fields)
+    .filter(([, value]) => typeof value !== 'undefined')
+    .map(([field]) => field)
+    .join(',');
 }
 
 function summarizePresentation(presentation: any) {
@@ -329,6 +383,366 @@ export function registerSlidesTools(server: FastMCP) {
         log.error(`Error creating text box: ${error.message || error}`);
         if (error instanceof UserError) throw error;
         throw new UserError(`Failed to create text box: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'insertSlideText',
+    description:
+      'Inserts text into a Slides shape or table cell at a text insertion index. Use object IDs from readPresentation/getSlide.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      objectId: z.string().min(1).describe('Shape, text box, or table object ID.'),
+      text: z.string().min(1).describe('Text to insert.'),
+      insertionIndex: z.number().int().min(0).optional().default(0),
+      cellLocation: cellLocationSchema.optional(),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Inserting text into ${args.objectId}`);
+      try {
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                insertText: {
+                  objectId: args.objectId,
+                  insertionIndex: args.insertionIndex,
+                  text: args.text,
+                  ...(args.cellLocation ? { cellLocation: args.cellLocation } : {}),
+                },
+              },
+            ],
+          },
+        });
+        return stringify({
+          objectId: args.objectId,
+          insertedCharacters: args.text.length,
+          insertionIndex: args.insertionIndex,
+        });
+      } catch (error: any) {
+        log.error(`Error inserting slide text: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to insert slide text: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'replaceAllSlideText',
+    description:
+      'Replaces all matching text in a presentation, or only within selected slide page IDs.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      containsText: z.string().min(1).describe('Text to find.'),
+      replaceText: z.string().describe('Replacement text. Use an empty string to remove matches.'),
+      matchCase: z.boolean().optional().default(false),
+      pageObjectIds: z
+        .array(z.string().min(1))
+        .optional()
+        .describe('Optional slide page object IDs to limit replacement scope.'),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Replacing slide text "${args.containsText}"`);
+      try {
+        const response = await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                replaceAllText: {
+                  containsText: {
+                    text: args.containsText,
+                    matchCase: args.matchCase,
+                  },
+                  replaceText: args.replaceText,
+                  ...(args.pageObjectIds ? { pageObjectIds: args.pageObjectIds } : {}),
+                },
+              },
+            ],
+          },
+        });
+        return stringify({
+          occurrencesChanged: response.data.replies?.[0]?.replaceAllText?.occurrencesChanged ?? 0,
+        });
+      } catch (error: any) {
+        log.error(`Error replacing slide text: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to replace slide text: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'deleteSlideText',
+    description: 'Deletes text from a Slides shape or table cell. Defaults to all text.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      objectId: z.string().min(1).describe('Shape, text box, or table object ID.'),
+      textRange: textRangeSchema,
+      cellLocation: cellLocationSchema.optional(),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Deleting text from ${args.objectId}`);
+      try {
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                deleteText: {
+                  objectId: args.objectId,
+                  textRange: buildTextRange(args.textRange),
+                  ...(args.cellLocation ? { cellLocation: args.cellLocation } : {}),
+                },
+              },
+            ],
+          },
+        });
+        return stringify({
+          objectId: args.objectId,
+          deletedTextRange: buildTextRange(args.textRange),
+        });
+      } catch (error: any) {
+        log.error(`Error deleting slide text: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to delete slide text: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'updateSlideTextStyle',
+    description:
+      'Updates text styling in a Slides shape or table cell. Only provided style fields are changed.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      objectId: z.string().min(1).describe('Shape, text box, or table object ID.'),
+      textRange: textRangeSchema,
+      cellLocation: cellLocationSchema.optional(),
+      bold: z.boolean().optional(),
+      italic: z.boolean().optional(),
+      underline: z.boolean().optional(),
+      strikethrough: z.boolean().optional(),
+      fontFamily: z.string().min(1).optional(),
+      fontSize: z.number().positive().optional().describe('Font size in points.'),
+      foregroundColor: hexColorSchema.optional(),
+      backgroundColor: hexColorSchema.optional(),
+      linkUrl: z.string().url().optional(),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Updating text style on ${args.objectId}`);
+      try {
+        const style: Record<string, unknown> = {
+          bold: args.bold,
+          italic: args.italic,
+          underline: args.underline,
+          strikethrough: args.strikethrough,
+          fontFamily: args.fontFamily,
+          fontSize: args.fontSize
+            ? {
+                magnitude: args.fontSize,
+                unit: 'PT',
+              }
+            : undefined,
+          foregroundColor: args.foregroundColor
+            ? { opaqueColor: { rgbColor: rgbColor(args.foregroundColor) } }
+            : undefined,
+          backgroundColor: args.backgroundColor
+            ? { opaqueColor: { rgbColor: rgbColor(args.backgroundColor) } }
+            : undefined,
+          link: args.linkUrl ? { url: args.linkUrl } : undefined,
+        };
+        const fields = fieldList(style);
+        if (!fields) throw new UserError('At least one text style field must be provided.');
+
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                updateTextStyle: {
+                  objectId: args.objectId,
+                  textRange: buildTextRange(args.textRange),
+                  style,
+                  fields,
+                  ...(args.cellLocation ? { cellLocation: args.cellLocation } : {}),
+                },
+              },
+            ],
+          },
+        });
+        return stringify({ objectId: args.objectId, fields: fields.split(',') });
+      } catch (error: any) {
+        log.error(`Error updating slide text style: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(
+          `Failed to update slide text style: ${error.message || 'Unknown error'}`
+        );
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'updateSlideParagraphStyle',
+    description:
+      'Updates paragraph style in a Slides shape or table cell. Only provided style fields are changed.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      objectId: z.string().min(1).describe('Shape, text box, or table object ID.'),
+      textRange: textRangeSchema,
+      cellLocation: cellLocationSchema.optional(),
+      alignment: z.enum(['START', 'CENTER', 'END', 'JUSTIFIED']).optional(),
+      lineSpacing: z.number().positive().optional().describe('Line spacing percentage.'),
+      spaceAbove: z.number().min(0).optional().describe('Space above paragraph in points.'),
+      spaceBelow: z.number().min(0).optional().describe('Space below paragraph in points.'),
+      indentStart: z.number().min(0).optional().describe('Start indent in points.'),
+      indentEnd: z.number().min(0).optional().describe('End indent in points.'),
+      indentFirstLine: z.number().optional().describe('First-line indent in points.'),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Updating paragraph style on ${args.objectId}`);
+      try {
+        const style: Record<string, unknown> = {
+          alignment: args.alignment,
+          lineSpacing: args.lineSpacing,
+          spaceAbove:
+            typeof args.spaceAbove === 'number'
+              ? { magnitude: args.spaceAbove, unit: 'PT' }
+              : undefined,
+          spaceBelow:
+            typeof args.spaceBelow === 'number'
+              ? { magnitude: args.spaceBelow, unit: 'PT' }
+              : undefined,
+          indentStart:
+            typeof args.indentStart === 'number'
+              ? { magnitude: args.indentStart, unit: 'PT' }
+              : undefined,
+          indentEnd:
+            typeof args.indentEnd === 'number'
+              ? { magnitude: args.indentEnd, unit: 'PT' }
+              : undefined,
+          indentFirstLine:
+            typeof args.indentFirstLine === 'number'
+              ? { magnitude: args.indentFirstLine, unit: 'PT' }
+              : undefined,
+        };
+        const fields = fieldList(style);
+        if (!fields) throw new UserError('At least one paragraph style field must be provided.');
+
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                updateParagraphStyle: {
+                  objectId: args.objectId,
+                  textRange: buildTextRange(args.textRange),
+                  style,
+                  fields,
+                  ...(args.cellLocation ? { cellLocation: args.cellLocation } : {}),
+                },
+              },
+            ],
+          },
+        });
+        return stringify({ objectId: args.objectId, fields: fields.split(',') });
+      } catch (error: any) {
+        log.error(`Error updating slide paragraph style: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(
+          `Failed to update slide paragraph style: ${error.message || 'Unknown error'}`
+        );
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'createSlideBullets',
+    description: 'Creates bullets for paragraphs in a Slides shape or table cell.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      objectId: z.string().min(1).describe('Shape, text box, or table object ID.'),
+      textRange: textRangeSchema,
+      cellLocation: cellLocationSchema.optional(),
+      bulletPreset: z
+        .enum([
+          'BULLET_DISC_CIRCLE_SQUARE',
+          'BULLET_DIAMONDX_ARROW3D_SQUARE',
+          'BULLET_CHECKBOX',
+          'NUMBERED_DIGIT_ALPHA_ROMAN',
+          'NUMBERED_DIGIT_ALPHA_ROMAN_PARENS',
+          'NUMBERED_DIGIT_NESTED',
+        ])
+        .optional()
+        .default('BULLET_DISC_CIRCLE_SQUARE'),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Creating bullets in ${args.objectId}`);
+      try {
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                createParagraphBullets: {
+                  objectId: args.objectId,
+                  textRange: buildTextRange(args.textRange),
+                  bulletPreset: args.bulletPreset,
+                  ...(args.cellLocation ? { cellLocation: args.cellLocation } : {}),
+                },
+              },
+            ],
+          },
+        });
+        return stringify({ objectId: args.objectId, bulletPreset: args.bulletPreset });
+      } catch (error: any) {
+        log.error(`Error creating slide bullets: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to create slide bullets: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'deleteSlideBullets',
+    description: 'Removes bullets from paragraphs in a Slides shape or table cell.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      objectId: z.string().min(1).describe('Shape, text box, or table object ID.'),
+      textRange: textRangeSchema,
+      cellLocation: cellLocationSchema.optional(),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Deleting bullets in ${args.objectId}`);
+      try {
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                deleteParagraphBullets: {
+                  objectId: args.objectId,
+                  textRange: buildTextRange(args.textRange),
+                  ...(args.cellLocation ? { cellLocation: args.cellLocation } : {}),
+                },
+              },
+            ],
+          },
+        });
+        return stringify({ objectId: args.objectId, deletedBullets: true });
+      } catch (error: any) {
+        log.error(`Error deleting slide bullets: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to delete slide bullets: ${error.message || 'Unknown error'}`);
       }
     },
   });

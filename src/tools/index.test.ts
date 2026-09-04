@@ -155,6 +155,13 @@ describe('registerAllTools', () => {
     expect(toolNames).toContain('createSlide');
     expect(toolNames).toContain('deleteSlideObject');
     expect(toolNames).toContain('createTextBox');
+    expect(toolNames).toContain('insertSlideText');
+    expect(toolNames).toContain('replaceAllSlideText');
+    expect(toolNames).toContain('deleteSlideText');
+    expect(toolNames).toContain('updateSlideTextStyle');
+    expect(toolNames).toContain('updateSlideParagraphStyle');
+    expect(toolNames).toContain('createSlideBullets');
+    expect(toolNames).toContain('deleteSlideBullets');
     expect(toolNames).toContain('setSpeakerNotes');
     expect(toolNames).toContain('appendSpeakerNotes');
     expect(toolNames).toContain('createSlideImage');
