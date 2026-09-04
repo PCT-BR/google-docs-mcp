@@ -1,11 +1,11 @@
 ---
 name: google-drive-private
-description: Use the private Google Docs MCP for personal Google Drive search, folders, file organization, sharing, exporting, revisions, deletion, and a maintained Drive index document. Does not edit Docs, Sheets, or Slides content except for the index document.
+description: Use the private Google Docs MCP for personal Google Drive search, folders, file organization, sharing, comments, exporting, revisions, deletion, and a maintained Drive index document. Does not edit Docs, Sheets, or Slides content except for the index document.
 ---
 
 # Google Drive Private
 
-Use `mcp__google_docs_mcp` Drive tools for the user's private Google Drive. This skill owns file discovery, folder browsing, organization, sharing, export/download, revisions, reversible deletion, and the optional Drive index document.
+Use `mcp__google_docs_mcp` Drive tools for the user's private Google Drive. This skill owns file discovery, folder browsing, organization, sharing, comments, export/download, revisions, reversible deletion, and the optional Drive index document.
 
 ## Defaults
 
@@ -22,6 +22,7 @@ Use `mcp__google_docs_mcp` Drive tools for the user's private Google Drive. This
 - Organize: `createFolder`, `moveFile`, `copyFile`, `renameFile`, `deleteFile`.
 - Access: `setFilePermission`.
 - Export/download: `downloadFile`.
+- Comments: `createFileComment`, `listFileComments`, `getFileComment`, `updateFileComment`, `deleteFileComment`, `createFileCommentReply`, `updateFileCommentReply`, `deleteFileCommentReply`.
 - Revisions: `listFileRevisions`, `getFileRevision`, `exportFileRevision`, `updateFileRevision`, `deleteFileRevision`.
 - Drive index: `findOrCreateDriveIndex`, `readDriveIndex`, `refreshDriveIndex`, `searchDriveIndex`, `updateDriveIndexEntry`.
 
@@ -30,6 +31,12 @@ Use `mcp__google_docs_mcp` Drive tools for the user's private Google Drive. This
 - Google may omit older revisions for heavily edited Docs, Sheets, and Slides.
 - Use `exportFileRevision` with an explicit MIME type for Google Workspace files.
 - Permanent revision deletion is only supported for eligible binary file revisions and requires `confirmPermanent=true`.
+
+## Comments
+
+- Generic Drive comments work across file types, including Docs, Sheets, Slides, PDFs, and binary files.
+- Custom Drive anchor JSON may be stored by Drive but can appear unanchored in Google Workspace editor UIs.
+- For Docs text ranges and Sheets cell/range review, prefer the service-specific comment tools when a friendlier wrapper is available.
 
 ## Drive Index
 

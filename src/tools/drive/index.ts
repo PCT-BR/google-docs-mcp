@@ -17,6 +17,7 @@ import { register as downloadFile } from './downloadFile.js';
 import { register as setFilePermission } from './setFilePermission.js';
 import { registerDriveIndexTools } from './driveIndex.js';
 import { register as revisions } from './revisions.js';
+import { registerDriveCommentTools } from './comments/index.js';
 
 export function registerDriveTools(server: FastMCP) {
   listGoogleDocs(server);
@@ -37,4 +38,5 @@ export function registerDriveTools(server: FastMCP) {
   setFilePermission(server);
   registerDriveIndexTools(server);
   revisions(server);
+  registerDriveCommentTools(server);
 }

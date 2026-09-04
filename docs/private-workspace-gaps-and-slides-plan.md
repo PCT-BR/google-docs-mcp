@@ -21,7 +21,7 @@ Target deployment: private personal Google account on Railway, without Firestore
 | Docs   | Replace images and delete positioned objects          | Stable                                                       | Implemented first pass                                        |
 | Docs   | Rich content in header/footer/footnote segments       | Stable with segment constraints                              | Refactor Markdown targeting and reject unsupported constructs |
 | Drive  | Revisions and historical exports                      | Stable, but history may be incomplete                        | Implemented first pass with explicit limitations              |
-| Drive  | Generic comments and anchors                          | Stable, but editor apps display custom anchors as unanchored | Implement generic file tools; keep honest descriptions        |
+| Drive  | Generic comments and anchors                          | Stable, but editor apps display custom anchors as unanchored | Implemented generic file tools with honest descriptions       |
 | Drive  | Automatic Drive index maintenance                     | Application feature                                          | Implement opt-in post-write synchronization                   |
 | Sheets | Pivot tables                                          | Stable                                                       | Implemented first pass around the anchor cell                 |
 | Sheets | Named ranges                                          | Stable                                                       | Implemented first pass                                        |

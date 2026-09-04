@@ -73,6 +73,19 @@ describe('registerAllTools', () => {
     expect(toolNames).toContain('deleteFileRevision');
   });
 
+  it('exposes generic Drive comment tools with the drive group', () => {
+    const toolNames = captureTools(['drive']);
+
+    expect(toolNames).toContain('createFileComment');
+    expect(toolNames).toContain('listFileComments');
+    expect(toolNames).toContain('getFileComment');
+    expect(toolNames).toContain('updateFileComment');
+    expect(toolNames).toContain('deleteFileComment');
+    expect(toolNames).toContain('createFileCommentReply');
+    expect(toolNames).toContain('updateFileCommentReply');
+    expect(toolNames).toContain('deleteFileCommentReply');
+  });
+
   it('exposes Google Docs comment tools with the docs group', () => {
     const toolNames = captureTools(['docs']);
 
