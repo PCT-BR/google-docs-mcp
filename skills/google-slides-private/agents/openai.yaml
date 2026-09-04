@@ -1,0 +1,3 @@
+interface:
+  display_name: 'Google Slides Private'
+  short_description: 'Create and edit private Google Slides via MCP.'

@@ -32,6 +32,13 @@ export function register(server: FastMCP) {
         .describe(
           'The ID of the specific tab to read. If not specified, reads the first tab (or legacy document.body for documents without tabs).'
         ),
+      suggestionsViewMode: z
+        .enum(['DEFAULT', 'INLINE', 'ACCEPTED_PREVIEW', 'REJECTED_PREVIEW'])
+        .optional()
+        .default('REJECTED_PREVIEW')
+        .describe(
+          'How suggestions are represented while reading. INLINE shows suggestions inline; ACCEPTED_PREVIEW previews accepted suggestions; REJECTED_PREVIEW reads without suggestions.'
+        ),
     }),
     execute: async (args, { log }) => {
       const docs = await getDocsClient();
@@ -51,7 +58,12 @@ export function register(server: FastMCP) {
         const res = await docs.documents.get({
           documentId: args.documentId,
           includeTabsContent: needsTabsContent,
-          suggestionsViewMode: 'PREVIEW_WITHOUT_SUGGESTIONS',
+          suggestionsViewMode: {
+            DEFAULT: 'DEFAULT_FOR_CURRENT_ACCESS',
+            INLINE: 'SUGGESTIONS_INLINE',
+            ACCEPTED_PREVIEW: 'PREVIEW_SUGGESTIONS_ACCEPTED',
+            REJECTED_PREVIEW: 'PREVIEW_WITHOUT_SUGGESTIONS',
+          }[args.suggestionsViewMode],
           fields: needsTabsContent
             ? `title,documentId,${buildTabsFieldMask('documentTab(body,documentStyle,namedStyles,lists)')}`
             : fields,

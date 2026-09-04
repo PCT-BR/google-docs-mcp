@@ -2,6 +2,7 @@ export const GOOGLE_TOOL_GROUPS = [
   'docs',
   'drive',
   'sheets',
+  'slides',
   'utils',
   'gmail',
   'calendar',
@@ -16,6 +17,7 @@ export const TOOL_GROUP_SCOPES: Record<GoogleToolGroup, readonly string[]> = {
   docs: ['https://www.googleapis.com/auth/documents'],
   drive: ['https://www.googleapis.com/auth/drive'],
   sheets: ['https://www.googleapis.com/auth/spreadsheets'],
+  slides: ['https://www.googleapis.com/auth/presentations'],
   utils: [
     'https://www.googleapis.com/auth/documents',
     'https://www.googleapis.com/auth/drive',

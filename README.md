@@ -1,10 +1,10 @@
-# Google Docs, Sheets, Drive, Gmail & Calendar MCP Server
+# Google Docs, Sheets, Slides, Drive, Gmail & Calendar MCP Server
 
 [![MCP Toplist](https://mcptoplist.com/badge/glama%2Fa-bonus%2Fgoogle-docs-mcp.svg)](https://mcptoplist.com/server/glama%2Fa-bonus%2Fgoogle-docs-mcp)
 
 ![Demo Animation](assets/google.docs.mcp.1.gif)
 
-Connect Claude Desktop, Cursor, or any MCP client to your Google Docs, Google Sheets, Google Drive, Gmail, and Google Calendar.
+Connect Claude Desktop, Cursor, or any MCP client to your Google Docs, Google Sheets, Google Slides, Google Drive, Gmail, and Google Calendar.
 
 ---
 
@@ -14,8 +14,8 @@ Connect Claude Desktop, Cursor, or any MCP client to your Google Docs, Google Sh
 
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
 2. Create or select a project
-3. Enable the **Google Docs API**, **Google Sheets API**, **Google Drive API**, **Gmail API**, and **Google Calendar API**
-4. Configure the **OAuth consent screen** (External, add your email as a test user, and add the `gmail.modify` and `calendar.events` scopes alongside the Docs/Sheets/Drive scopes)
+3. Enable the **Google Docs API**, **Google Sheets API**, **Google Slides API**, **Google Drive API**, **Gmail API**, and **Google Calendar API**
+4. Configure the **OAuth consent screen** (External, add your email as a test user, and add the `gmail.modify` and `calendar.events` scopes alongside the Docs/Sheets/Slides/Drive scopes)
 5. Create an **OAuth client ID** (Desktop app type)
 6. Copy the **Client ID** and **Client Secret** from the confirmation screen
 
@@ -80,7 +80,7 @@ Then each user just adds the URL to their MCP client -- no npx, no tokens, no lo
 
 Your MCP client will prompt for Google sign-in on first connection. See [Remote Deployment](#remote-deployment) for details.
 
-### Private Railway Deployment (Docs, Drive & Sheets Only)
+### Private Railway Deployment (Docs, Drive, Sheets & Slides)
 
 For a private personal deployment on Railway, you can run the remote server without
 Firestore. This keeps setup simple, but OAuth sessions can be lost when Railway
@@ -95,7 +95,7 @@ BASE_URL=https://your-app.up.railway.app
 GOOGLE_CLIENT_ID=your-web-oauth-client-id
 GOOGLE_CLIENT_SECRET=your-web-oauth-client-secret
 JWT_SIGNING_KEY=replace-with-a-long-random-secret
-MCP_TOOL_GROUPS=docs,drive,sheets,utils
+MCP_TOOL_GROUPS=docs,drive,sheets,slides,utils
 # Optional: exact callback pattern for a hosted client such as LibreChat
 MCP_ALLOWED_REDIRECT_URI_PATTERNS=https://librechat.example.com/*
 ```
@@ -107,8 +107,8 @@ redirect URI:
 https://your-app.up.railway.app/oauth/callback
 ```
 
-With `MCP_TOOL_GROUPS=docs,drive,sheets,utils`, the OAuth flow requests only the
-Google Docs, Drive, and Sheets scopes.
+With `MCP_TOOL_GROUPS=docs,drive,sheets,slides,utils`, the OAuth flow requests only the
+Google Docs, Drive, Sheets, and Slides scopes.
 
 ### Codex Skills
 
@@ -118,14 +118,17 @@ The maintained Codex skills for this private MCP deployment live in [`skills/`](
 - [`google-drive-private`](skills/google-drive-private/SKILL.md) handles Drive search, organization, and indexing.
 - [`google-docs-private`](skills/google-docs-private/SKILL.md) handles Google Docs content and structure.
 - [`google-sheets-private`](skills/google-sheets-private/SKILL.md) handles Google Sheets data, layout, and charts.
+- [`google-slides-private`](skills/google-slides-private/SKILL.md) handles initial Google Slides creation and editing.
 
 Completed plans and superseded skill references are retained in [`old/`](old/).
+The active roadmap for closing the remaining gaps and adding Google Slides is
+[`docs/private-workspace-gaps-and-slides-plan.md`](docs/private-workspace-gaps-and-slides-plan.md).
 
 ---
 
 ## What Can It Do?
 
-Tools across Google Docs, Sheets, and Drive:
+Tools across Google Docs, Sheets, Slides, and Drive:
 
 ### Google Docs
 
@@ -201,6 +204,24 @@ Tools across Google Docs, Sheets, and Drive:
 | `createSheetsCellNote`        | Create a native cell note attached to a cell or range                 |
 | `insertChart`                 | Create a chart from data                                              |
 | `deleteChart`                 | Remove a chart                                                        |
+| `createSheetNamedRange`       | Create a native named range                                           |
+| `listSheetNamedRanges`        | List native named ranges and IDs                                      |
+| `updateSheetNamedRange`       | Rename or retarget a native named range                               |
+| `deleteSheetNamedRange`       | Delete a named range definition                                       |
+| `trimWhitespace`              | Trim and normalize whitespace in a range                              |
+| `textToColumns`               | Split one text column into multiple columns                           |
+
+### Google Slides
+
+| Tool                 | Description                                       |
+| -------------------- | ------------------------------------------------- |
+| `createPresentation` | Create a new Google Slides presentation           |
+| `readPresentation`   | Read presentation metadata and slide structure    |
+| `listSlides`         | List slides with object IDs and element counts    |
+| `createSlide`        | Create a new slide with a predefined layout       |
+| `deleteSlideObject`  | Delete a slide or page element by exact object ID |
+| `createTextBox`      | Add a text box or simple shape to a slide         |
+| `createSlideImage`   | Add a publicly reachable image URL to a slide     |
 
 ### Google Sheets Tables
 

@@ -63,6 +63,16 @@ describe('registerAllTools', () => {
     expect(toolNames).toContain('updateDriveIndexEntry');
   });
 
+  it('exposes Drive revision tools with the drive group', () => {
+    const toolNames = captureTools(['drive']);
+
+    expect(toolNames).toContain('listFileRevisions');
+    expect(toolNames).toContain('getFileRevision');
+    expect(toolNames).toContain('exportFileRevision');
+    expect(toolNames).toContain('updateFileRevision');
+    expect(toolNames).toContain('deleteFileRevision');
+  });
+
   it('exposes Google Docs comment tools with the docs group', () => {
     const toolNames = captureTools(['docs']);
 
@@ -86,6 +96,7 @@ describe('registerAllTools', () => {
     expect(toolNames).toContain('replaceNamedRange');
     expect(toolNames).toContain('getDocumentPageFormat');
     expect(toolNames).toContain('setDocumentPageFormat');
+    expect(toolNames).toContain('listDocumentSuggestions');
   });
 
   it('exposes advanced Sheets layout tools with the sheets group', () => {
@@ -99,6 +110,35 @@ describe('registerAllTools', () => {
     expect(toolNames).toContain('unmergeCells');
     expect(toolNames).toContain('updateChart');
   });
+
+  it('exposes stable Sheets gap tools with the sheets group', () => {
+    const toolNames = captureTools(['sheets']);
+
+    expect(toolNames).toContain('createSheetNamedRange');
+    expect(toolNames).toContain('listSheetNamedRanges');
+    expect(toolNames).toContain('updateSheetNamedRange');
+    expect(toolNames).toContain('deleteSheetNamedRange');
+    expect(toolNames).toContain('trimWhitespace');
+    expect(toolNames).toContain('textToColumns');
+    expect(toolNames).toContain('createPivotTable');
+    expect(toolNames).toContain('listPivotTables');
+    expect(toolNames).toContain('getPivotTable');
+    expect(toolNames).toContain('updatePivotTable');
+    expect(toolNames).toContain('deletePivotTable');
+  });
+
+  it('exposes initial Google Slides tools with the slides group', () => {
+    const toolNames = captureTools(['slides']);
+
+    expect(toolNames).toContain('createPresentation');
+    expect(toolNames).toContain('readPresentation');
+    expect(toolNames).toContain('listSlides');
+    expect(toolNames).toContain('createSlide');
+    expect(toolNames).toContain('deleteSlideObject');
+    expect(toolNames).toContain('createTextBox');
+    expect(toolNames).toContain('createSlideImage');
+    expect(toolNames).not.toContain('readDocument');
+  });
 });
 
 describe('getScopesForToolGroups', () => {
@@ -107,6 +147,15 @@ describe('getScopesForToolGroups', () => {
       'https://www.googleapis.com/auth/documents',
       'https://www.googleapis.com/auth/drive',
       'https://www.googleapis.com/auth/spreadsheets',
+    ]);
+  });
+
+  it('includes the presentations scope only when Slides is enabled', () => {
+    expect(getScopesForToolGroups(['docs', 'drive', 'sheets', 'utils'])).not.toContain(
+      'https://www.googleapis.com/auth/presentations'
+    );
+    expect(getScopesForToolGroups(['slides'])).toEqual([
+      'https://www.googleapis.com/auth/presentations',
     ]);
   });
 

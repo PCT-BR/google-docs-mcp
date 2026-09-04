@@ -44,6 +44,9 @@ import { register as appendTableRows } from './appendTableRows.js';
 import { register as insertChart } from './insertChart.js';
 import { register as deleteChart } from './deleteChart.js';
 import { registerAdvancedLayoutTools } from './advancedLayout.js';
+import { register as namedRanges } from './namedRanges.js';
+import { register as dataCleanup } from './dataCleanup.js';
+import { register as pivotTables } from './pivotTables.js';
 
 export function registerSheetsTools(server: FastMCP) {
   readSpreadsheet(server);
@@ -91,4 +94,7 @@ export function registerSheetsTools(server: FastMCP) {
   insertChart(server);
   deleteChart(server);
   registerAdvancedLayoutTools(server);
+  namedRanges(server);
+  dataCleanup(server);
+  pivotTables(server);
 }

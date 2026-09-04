@@ -19,6 +19,7 @@ Use `mcp__google_docs_mcp` Docs tools for personal Google Docs. Use Drive tools 
 ## Main Tools
 
 - Create/read/export: `createDocument`, `readDocument`, `downloadFile`.
+- Suggestions read-only: `listDocumentSuggestions`, plus `readDocument(suggestionsViewMode=...)`.
 - Markdown edits: `appendMarkdown`, `replaceDocumentWithMarkdown`, `replaceRangeWithMarkdown`.
 - Precise edits: `findElement`, `insertText`, `deleteRange`, `modifyText`, `findAndReplace`.
 - Styling: `batchApplyTextStyle`, `applyParagraphStyle`.
@@ -47,4 +48,4 @@ When creating, renaming, moving, or substantially updating a user-facing Doc, up
 
 ## Known Gaps
 
-This MCP still does not expose clear tools for suggestions/tracked changes, positioned object replacement, or full Markdown insertion inside header/footer/footnote segments.
+This MCP still does not expose suggestion/tracked-change write actions, positioned object replacement, or full Markdown insertion inside header/footer/footnote segments. Suggestion write actions require Google Developer Preview support.

@@ -30,6 +30,7 @@ import { register as findSectionsByHeading } from './findSectionsByHeading.js';
 import { register as replaceTableRowData } from './replaceTableRowData.js';
 import { register as appendTableRows } from './appendTableRows.js';
 import { register as deleteTableRows } from './deleteTableRows.js';
+import { register as suggestions } from './suggestions.js';
 
 // Sub-domains
 import { registerCommentTools } from './comments/index.js';
@@ -67,6 +68,7 @@ export function registerDocsTools(server: FastMCP) {
   replaceTableRowData(server);
   appendTableRows(server);
   deleteTableRows(server);
+  suggestions(server);
 
   // Sub-domains
   registerFormattingTools(server);

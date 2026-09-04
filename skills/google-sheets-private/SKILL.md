@@ -24,7 +24,9 @@ Use `mcp__google_docs_mcp` Sheets tools for personal Google Sheets. Use Drive to
 - Validation and protection: `setDropdownValidation`, `protectRange`.
 - Conditional formatting: `addConditionalFormatting`, `getConditionalFormatting`, `deleteConditionalFormatting`.
 - Tables: `createTable`, `listTables`, `getTable`, `appendTableRows`, `updateTableRange`, `deleteTable`.
-- Filters and layout: `setBasicFilter`, `clearBasicFilter`, `createFilterView`, `listFilterViews`, `updateFilterView`, `deleteFilterView`, `insertRows`, `deleteRows`, `moveRows`, `insertColumns`, `deleteColumns`, `moveColumns`, `mergeCells`, `unmergeCells`.
+- Filters and layout: `setBasicFilter`, `clearBasicFilter`, `createFilterView`, `listFilterViews`, `updateFilterView`, `deleteFilterView`, `insertRows`, `deleteRows`, `moveRows`, `insertColumns`, `deleteColumns`, `moveColumns`, `mergeCells`, `unmergeCells`, `trimWhitespace`, `textToColumns`.
+- Named ranges: `createSheetNamedRange`, `listSheetNamedRanges`, `updateSheetNamedRange`, `deleteSheetNamedRange`.
+- Pivot tables: `createPivotTable`, `listPivotTables`, `getPivotTable`, `updatePivotTable`, `deletePivotTable`.
 - Charts: `insertChart`, `updateChart`, `deleteChart`.
 - Review notes: `createSheetsCellNote`, `createSheetsComment`, `listSheetsComments`, `getSheetsComment`, `replyToSheetsComment`, `resolveSheetsComment`, `deleteSheetsComment`.
 
@@ -36,6 +38,9 @@ Use `mcp__google_docs_mcp` Sheets tools for personal Google Sheets. Use Drive to
 - For visible review notes attached to a cell, prefer `createSheetsCellNote`. Drive-style Sheets comments are not truly anchored in the Sheets UI.
 - For filters, prefer `setBasicFilter` for one active sheet-level filter and filter views when the user needs saved views.
 - For row/column structure changes, use the dedicated row/column aliases before generic dimension operations.
+- For reusable formula/chart/table references, use native Sheets named ranges rather than remembering raw A1 coordinates.
+- For imported CSV-like content inside a column, use `textToColumns`; for cleanup after paste/import, use `trimWhitespace`.
+- For pivot summaries, use source column offsets from the source range; inspect headers first so offsets are chosen deliberately.
 - For charts, create with `insertChart` and use `updateChart` for title/range/basic chart updates.
 - For table-like data, use native Sheets tables with `createTable` and append with `appendTableRows`.
 
@@ -45,4 +50,4 @@ When creating, renaming, moving, or substantially updating a user-facing Sheet, 
 
 ## Known Gaps
 
-This MCP still does not expose clear tools for pivot tables, Sheets named ranges, trim whitespace, or text-to-columns.
+This MCP still does not expose Developer Preview native cell comments. Use cell notes or Drive-style comments for review until preview support is intentionally enabled.
