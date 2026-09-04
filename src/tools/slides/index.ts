@@ -24,6 +24,27 @@ const shapeTypeSchema = z
   .enum(['TEXT_BOX', 'RECTANGLE', 'ROUND_RECTANGLE', 'ELLIPSE', 'TRIANGLE', 'DIAMOND'])
   .default('TEXT_BOX');
 
+const lineCategorySchema = z.enum(['STRAIGHT', 'BENT', 'CURVED']).default('STRAIGHT');
+
+const dashStyleSchema = z
+  .enum(['SOLID', 'DOT', 'DASH', 'DASH_DOT', 'LONG_DASH', 'LONG_DASH_DOT'])
+  .optional();
+
+const arrowStyleSchema = z
+  .enum([
+    'NONE',
+    'STEALTH_ARROW',
+    'FILL_ARROW',
+    'FILL_CIRCLE',
+    'FILL_SQUARE',
+    'FILL_DIAMOND',
+    'OPEN_ARROW',
+    'OPEN_CIRCLE',
+    'OPEN_SQUARE',
+    'OPEN_DIAMOND',
+  ])
+  .optional();
+
 const cellLocationSchema = z
   .strictObject({
     rowIndex: z.number().int().min(0),
@@ -103,6 +124,10 @@ function fieldList(fields: Record<string, unknown>) {
     .filter(([, value]) => typeof value !== 'undefined')
     .map(([field]) => field)
     .join(',');
+}
+
+function solidFill(hex: string) {
+  return { solidFill: { color: { rgbColor: rgbColor(hex) } } };
 }
 
 function summarizePresentation(presentation: any) {
@@ -383,6 +408,480 @@ export function registerSlidesTools(server: FastMCP) {
         log.error(`Error creating text box: ${error.message || error}`);
         if (error instanceof UserError) throw error;
         throw new UserError(`Failed to create text box: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'createShape',
+    description:
+      'Creates a Slides shape on a slide. Coordinates and size are in points. Use createTextBox when the primary goal is text.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      pageObjectId: z.string().min(1).describe('Slide object ID where the shape will be added.'),
+      objectId: objectIdParam.optional(),
+      shapeType: shapeTypeSchema,
+      x: dimensionParam.default(72),
+      y: dimensionParam.default(72),
+      width: dimensionParam.default(180),
+      height: dimensionParam.default(90),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Creating ${args.shapeType} shape on slide ${args.pageObjectId}`);
+      try {
+        const response = await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                createShape: {
+                  objectId: args.objectId,
+                  shapeType: args.shapeType,
+                  elementProperties: elementProperties(
+                    args.pageObjectId,
+                    args.x,
+                    args.y,
+                    args.width,
+                    args.height
+                  ),
+                },
+              },
+            ],
+          },
+        });
+
+        return stringify({ shape: response.data.replies?.[0]?.createShape });
+      } catch (error: any) {
+        log.error(`Error creating shape: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to create shape: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'updateShapeProperties',
+    description:
+      'Updates fill, outline, or vertical text alignment for a Slides shape. Only provided properties are changed.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      objectId: z.string().min(1).describe('Shape object ID.'),
+      fillColor: hexColorSchema.optional(),
+      outlineColor: hexColorSchema.optional(),
+      outlineWeight: z.number().positive().optional().describe('Outline weight in points.'),
+      contentAlignment: z.enum(['TOP', 'MIDDLE', 'BOTTOM']).optional(),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Updating shape properties on ${args.objectId}`);
+      try {
+        const shapeProperties: any = {};
+        const fields: string[] = [];
+
+        if (args.fillColor) {
+          shapeProperties.shapeBackgroundFill = solidFill(args.fillColor);
+          fields.push('shapeBackgroundFill.solidFill.color');
+        }
+        if (args.outlineColor || args.outlineWeight) {
+          shapeProperties.outline = {};
+          if (args.outlineColor) {
+            shapeProperties.outline.outlineFill = solidFill(args.outlineColor);
+            fields.push('outline.outlineFill.solidFill.color');
+          }
+          if (args.outlineWeight) {
+            shapeProperties.outline.weight = { magnitude: args.outlineWeight, unit: 'PT' };
+            fields.push('outline.weight');
+          }
+        }
+        if (args.contentAlignment) {
+          shapeProperties.contentAlignment = args.contentAlignment;
+          fields.push('contentAlignment');
+        }
+        if (fields.length === 0) {
+          throw new UserError('At least one shape property must be provided.');
+        }
+
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                updateShapeProperties: {
+                  objectId: args.objectId,
+                  shapeProperties,
+                  fields: fields.join(','),
+                },
+              },
+            ],
+          },
+        });
+        return stringify({ objectId: args.objectId, fields });
+      } catch (error: any) {
+        log.error(`Error updating shape properties: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(
+          `Failed to update shape properties: ${error.message || 'Unknown error'}`
+        );
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'updatePageElementTransform',
+    description:
+      'Updates a Slides page element transform. Translation is in points; scale and shear are raw transform values.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      objectId: z.string().min(1).describe('Page element object ID.'),
+      translateX: z.number().optional(),
+      translateY: z.number().optional(),
+      scaleX: z.number().optional(),
+      scaleY: z.number().optional(),
+      shearX: z.number().optional(),
+      shearY: z.number().optional(),
+      applyMode: z.enum(['ABSOLUTE', 'RELATIVE']).optional().default('ABSOLUTE'),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Updating transform for ${args.objectId}`);
+      try {
+        const transform = {
+          scaleX: args.scaleX ?? 1,
+          scaleY: args.scaleY ?? 1,
+          shearX: args.shearX ?? 0,
+          shearY: args.shearY ?? 0,
+          translateX: args.translateX ?? 0,
+          translateY: args.translateY ?? 0,
+          unit: 'PT',
+        };
+
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                updatePageElementTransform: {
+                  objectId: args.objectId,
+                  transform,
+                  applyMode: args.applyMode,
+                },
+              },
+            ],
+          },
+        });
+        return stringify({ objectId: args.objectId, transform, applyMode: args.applyMode });
+      } catch (error: any) {
+        log.error(`Error updating page element transform: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(
+          `Failed to update page element transform: ${error.message || 'Unknown error'}`
+        );
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'updatePageBackground',
+    description: 'Updates a slide page background fill color.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      pageObjectId: z.string().min(1).describe('Slide page object ID.'),
+      backgroundColor: hexColorSchema,
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Updating page background for ${args.pageObjectId}`);
+      try {
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                updatePageProperties: {
+                  objectId: args.pageObjectId,
+                  pageProperties: {
+                    pageBackgroundFill: solidFill(args.backgroundColor),
+                  },
+                  fields: 'pageBackgroundFill.solidFill.color',
+                },
+              },
+            ],
+          },
+        });
+        return stringify({
+          pageObjectId: args.pageObjectId,
+          backgroundColor: args.backgroundColor,
+        });
+      } catch (error: any) {
+        log.error(`Error updating page background: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(
+          `Failed to update page background: ${error.message || 'Unknown error'}`
+        );
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'createLine',
+    description: 'Creates a line on a slide. Coordinates and size are in points.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      pageObjectId: z.string().min(1).describe('Slide object ID where the line will be added.'),
+      objectId: objectIdParam.optional(),
+      category: lineCategorySchema,
+      x: dimensionParam.default(72),
+      y: dimensionParam.default(72),
+      width: dimensionParam.default(240),
+      height: dimensionParam.default(0.1),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Creating line on slide ${args.pageObjectId}`);
+      try {
+        const response = await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                createLine: {
+                  objectId: args.objectId,
+                  category: args.category,
+                  elementProperties: elementProperties(
+                    args.pageObjectId,
+                    args.x,
+                    args.y,
+                    args.width,
+                    args.height
+                  ),
+                },
+              },
+            ],
+          },
+        });
+        return stringify({ line: response.data.replies?.[0]?.createLine });
+      } catch (error: any) {
+        log.error(`Error creating line: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to create line: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'updateLineProperties',
+    description: 'Updates stroke color, weight, dash style, or arrows for a Slides line.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      objectId: z.string().min(1).describe('Line object ID.'),
+      lineColor: hexColorSchema.optional(),
+      weight: z.number().positive().optional().describe('Line weight in points.'),
+      dashStyle: dashStyleSchema,
+      startArrow: arrowStyleSchema,
+      endArrow: arrowStyleSchema,
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Updating line properties on ${args.objectId}`);
+      try {
+        const lineProperties: any = {};
+        const fields: string[] = [];
+        if (args.lineColor) {
+          lineProperties.lineFill = solidFill(args.lineColor);
+          fields.push('lineFill.solidFill.color');
+        }
+        if (args.weight) {
+          lineProperties.weight = { magnitude: args.weight, unit: 'PT' };
+          fields.push('weight');
+        }
+        if (args.dashStyle) {
+          lineProperties.dashStyle = args.dashStyle;
+          fields.push('dashStyle');
+        }
+        if (args.startArrow) {
+          lineProperties.startArrow = args.startArrow;
+          fields.push('startArrow');
+        }
+        if (args.endArrow) {
+          lineProperties.endArrow = args.endArrow;
+          fields.push('endArrow');
+        }
+        if (fields.length === 0) {
+          throw new UserError('At least one line property must be provided.');
+        }
+
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                updateLineProperties: {
+                  objectId: args.objectId,
+                  lineProperties,
+                  fields: fields.join(','),
+                },
+              },
+            ],
+          },
+        });
+        return stringify({ objectId: args.objectId, fields });
+      } catch (error: any) {
+        log.error(`Error updating line properties: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(
+          `Failed to update line properties: ${error.message || 'Unknown error'}`
+        );
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'groupSlideObjects',
+    description: 'Groups multiple page elements on the same slide and returns the new group ID.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      childrenObjectIds: z.array(z.string().min(1)).min(2),
+      groupObjectId: objectIdParam.optional(),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Grouping ${args.childrenObjectIds.length} slide objects`);
+      try {
+        const response = await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                groupObjects: {
+                  childrenObjectIds: args.childrenObjectIds,
+                  groupObjectId: args.groupObjectId,
+                },
+              },
+            ],
+          },
+        });
+        return stringify({ group: response.data.replies?.[0]?.groupObjects });
+      } catch (error: any) {
+        log.error(`Error grouping slide objects: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to group slide objects: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'ungroupSlideObjects',
+    description: 'Ungroups one or more Slides group object IDs.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      objectIds: z.array(z.string().min(1)).min(1).describe('Group object IDs to ungroup.'),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Ungrouping ${args.objectIds.length} slide objects`);
+      try {
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                ungroupObjects: {
+                  objectIds: args.objectIds,
+                },
+              },
+            ],
+          },
+        });
+        return stringify({ ungroupedObjectIds: args.objectIds });
+      } catch (error: any) {
+        log.error(`Error ungrouping slide objects: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(`Failed to ungroup slide objects: ${error.message || 'Unknown error'}`);
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'updateSlideObjectZOrder',
+    description: 'Changes z-order for one or more Slides page elements.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      pageElementObjectIds: z.array(z.string().min(1)).min(1),
+      operation: z.enum(['BRING_TO_FRONT', 'BRING_FORWARD', 'SEND_BACKWARD', 'SEND_TO_BACK']),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Updating z-order for ${args.pageElementObjectIds.length} slide objects`);
+      try {
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                updatePageElementsZOrder: {
+                  pageElementObjectIds: args.pageElementObjectIds,
+                  operation: args.operation,
+                },
+              },
+            ],
+          },
+        });
+        return stringify({
+          pageElementObjectIds: args.pageElementObjectIds,
+          operation: args.operation,
+        });
+      } catch (error: any) {
+        log.error(`Error updating slide object z-order: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(
+          `Failed to update slide object z-order: ${error.message || 'Unknown error'}`
+        );
+      }
+    },
+  });
+
+  server.addTool({
+    name: 'updateSlideObjectAltText',
+    description: 'Updates title and description alt text for a Slides page element.',
+    parameters: z.strictObject({
+      presentationId: presentationIdParam,
+      objectId: z.string().min(1).describe('Page element object ID.'),
+      title: z.string().optional(),
+      description: z.string().optional(),
+    }),
+    execute: async (args, { log }) => {
+      const slides = await getSlidesClient();
+      log.info(`Updating alt text for ${args.objectId}`);
+      try {
+        if (typeof args.title !== 'string' && typeof args.description !== 'string') {
+          throw new UserError('Provide title, description, or both.');
+        }
+        await slides.presentations.batchUpdate({
+          presentationId: args.presentationId,
+          requestBody: {
+            requests: [
+              {
+                updatePageElementAltText: {
+                  objectId: args.objectId,
+                  title: args.title,
+                  description: args.description,
+                },
+              },
+            ],
+          },
+        });
+        return stringify({
+          objectId: args.objectId,
+          title: args.title ?? null,
+          description: args.description ?? null,
+        });
+      } catch (error: any) {
+        log.error(`Error updating slide object alt text: ${error.message || error}`);
+        if (error instanceof UserError) throw error;
+        throw new UserError(
+          `Failed to update slide object alt text: ${error.message || 'Unknown error'}`
+        );
       }
     },
   });

@@ -19,7 +19,8 @@ Use `mcp__google_docs_mcp` Slides tools for personal Google Slides. Use Drive to
 
 - Presentation lifecycle: `createPresentation`, `readPresentation`.
 - Slides: `listSlides`, `getSlide`, `getSlideThumbnail`, `createSlide`, `deleteSlideObject`.
-- Text and shapes: `createTextBox`, `insertSlideText`, `replaceAllSlideText`, `deleteSlideText`, `updateSlideTextStyle`, `updateSlideParagraphStyle`, `createSlideBullets`, `deleteSlideBullets`.
+- Text: `createTextBox`, `insertSlideText`, `replaceAllSlideText`, `deleteSlideText`, `updateSlideTextStyle`, `updateSlideParagraphStyle`, `createSlideBullets`, `deleteSlideBullets`.
+- Shapes and layout: `createShape`, `updateShapeProperties`, `updatePageElementTransform`, `updatePageBackground`, `createLine`, `updateLineProperties`, `groupSlideObjects`, `ungroupSlideObjects`, `updateSlideObjectZOrder`, `updateSlideObjectAltText`.
 - Images: `createSlideImage`.
 - Tables: `createSlideTable`, `writeSlideTableCells`.
 - Sheets charts: `createSheetsChartOnSlide`, `refreshSheetsChartOnSlide`.
@@ -30,6 +31,8 @@ Use `mcp__google_docs_mcp` Slides tools for personal Google Slides. Use Drive to
 - For a new simple deck, create the presentation, create the needed slides, then add text boxes and images by slide ID.
 - For template placeholders, use `replaceAllSlideText` with `pageObjectIds` when only selected slides should change.
 - For text styling, use explicit object IDs and `textRange`; use `cellLocation` only when editing table-cell text.
+- Use points for shape, line, and transform coordinates.
+- Add alt text to meaningful non-text elements with `updateSlideObjectAltText`.
 - For visual checks, use `getSlideThumbnail`; it returns a temporary account-scoped URL.
 - For presenter scripts, use `setSpeakerNotes` with the speaker notes object ID from `listSlides` or `readPresentation`.
 - For simple data slides, create a native table with `createSlideTable`, then fill it with `writeSlideTableCells`.
@@ -39,4 +42,4 @@ Use `mcp__google_docs_mcp` Slides tools for personal Google Slides. Use Drive to
 
 ## Known Gaps
 
-This MCP does not yet expose video, grouping, z-order controls, or image replacement/properties for Slides.
+This MCP does not yet expose video or image replacement/properties for Slides.

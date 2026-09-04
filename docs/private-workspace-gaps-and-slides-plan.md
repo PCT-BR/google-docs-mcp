@@ -284,17 +284,17 @@ Create text tools:
 
 Create element/layout tools:
 
-- `createShape`
-- `updateShapeProperties`
-- `updatePageElementTransform`
-- `updatePageBackground`
-- `createLine`
-- `updateLineProperties`
-- `groupSlideObjects`
-- `ungroupSlideObjects`
-- `updateSlideObjectZOrder`
-- `updateSlideObjectAltText`
-- `deleteSlideObject`
+- Done: `createShape`
+- Done: `updateShapeProperties`
+- Done: `updatePageElementTransform`
+- Done: `updatePageBackground`
+- Done: `createLine`
+- Done: `updateLineProperties`
+- Done: `groupSlideObjects`
+- Done: `ungroupSlideObjects`
+- Done: `updateSlideObjectZOrder`
+- Done: `updateSlideObjectAltText`
+- Done: `deleteSlideObject`
 
 Use points in public tool parameters and convert to EMU internally. Offer sensible shape/text-box defaults, but always return generated object IDs for follow-up edits.
 
