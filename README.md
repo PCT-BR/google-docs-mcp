@@ -399,23 +399,24 @@ Visit the server root URL (`/`) for setup instructions and a ready-to-copy clien
 
 ### Environment Variables
 
-| Variable                            | Description                                                                                                                             |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `MCP_TRANSPORT`                     | Set to `httpStream` to enable remote mode (default: `stdio`)                                                                            |
-| `BASE_URL`                          | Public URL of the deployed server (required for OAuth redirects)                                                                        |
-| `GOOGLE_CLIENT_ID`                  | OAuth client ID (Web application type)                                                                                                  |
-| `GOOGLE_CLIENT_SECRET`              | OAuth client secret                                                                                                                     |
-| `MCP_TOOL_GROUPS`                   | Optional comma-separated tool groups to register: `docs`, `drive`, `sheets`, `slides`, `utils`, `gmail`, `calendar`, `script`, or `all` |
-| `MCP_ALLOWED_REDIRECT_URI_PATTERNS` | Optional comma-separated callback patterns for trusted hosted MCP clients (for example, `https://librechat.example.com/*`)              |
-| `MCP_DRIVE_INDEX_AUTO_UPDATE`       | Optional: set to `true` to update the configured Drive index after supported Drive lifecycle mutations                                  |
-| `MCP_DRIVE_INDEX_DOCUMENT_ID`       | Google Doc ID of the Drive index used by automatic index updates                                                                        |
-| `ALLOWED_DOMAINS`                   | Comma-separated list of allowed Google Workspace domains (optional)                                                                     |
-| `PORT`                              | HTTP port (default: `8080`)                                                                                                             |
-| `TOKEN_STORE`                       | Set to `firestore` for persistent token storage (default: in-memory)                                                                    |
-| `JWT_SIGNING_KEY`                   | Fixed signing key so tokens survive restarts (auto-generated if not set)                                                                |
-| `REFRESH_TOKEN_TTL`                 | Refresh token lifetime in seconds (default: `2592000` / 30 days)                                                                        |
-| `GCLOUD_PROJECT`                    | GCP project ID for Firestore (required when `TOKEN_STORE=firestore`)                                                                    |
-| `MCP_STATELESS`                     | Set to `true` for serverless deployments (Cloud Run, etc.) — disables session tracking to survive scale-to-zero                         |
+| Variable                            | Description                                                                                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MCP_TRANSPORT`                     | Set to `httpStream` to enable remote mode (default: `stdio`)                                                                                            |
+| `BASE_URL`                          | Public URL of the deployed server (required for OAuth redirects)                                                                                        |
+| `GOOGLE_CLIENT_ID`                  | OAuth client ID (Web application type)                                                                                                                  |
+| `GOOGLE_CLIENT_SECRET`              | OAuth client secret                                                                                                                                     |
+| `MCP_TOOL_GROUPS`                   | Optional comma-separated tool groups to register: `docs`, `drive`, `sheets`, `slides`, `utils`, `gmail`, `calendar`, `script`, or `all`                 |
+| `MCP_ALLOWED_REDIRECT_URI_PATTERNS` | Optional comma-separated callback patterns for trusted hosted MCP clients (for example, `https://librechat.example.com/*`)                              |
+| `MCP_DRIVE_INDEX_AUTO_UPDATE`       | Optional: set to `true` to update the configured Drive index after supported Drive lifecycle mutations                                                  |
+| `MCP_DRIVE_INDEX_DOCUMENT_ID`       | Google Doc ID of the Drive index used by automatic index updates                                                                                        |
+| `ALLOWED_DOMAINS`                   | Comma-separated list of allowed Google Workspace domains (optional)                                                                                     |
+| `PORT`                              | HTTP port (default: `8080`)                                                                                                                             |
+| `TOKEN_STORE`                       | Set to `firestore` or `file` for persistent OAuth token storage (default: in-memory)                                                                    |
+| `TOKEN_STORE_DIR`                   | Directory for file-backed token storage when `TOKEN_STORE=file` (for Railway volumes, use a path under the volume mount, e.g. `/data/mcp-oauth-tokens`) |
+| `JWT_SIGNING_KEY`                   | Fixed signing key so tokens survive restarts (auto-generated if not set)                                                                                |
+| `REFRESH_TOKEN_TTL`                 | Refresh token lifetime in seconds (default: `2592000` / 30 days)                                                                                        |
+| `GCLOUD_PROJECT`                    | GCP project ID for Firestore (required when `TOKEN_STORE=firestore`)                                                                                    |
+| `MCP_STATELESS`                     | Set to `true` for serverless deployments (Cloud Run, etc.) — disables session tracking to survive scale-to-zero                                         |
 
 ### Setup
 
@@ -438,7 +439,7 @@ gcloud run deploy google-docs-mcp \
 ### How It Works
 
 - By default, OAuth sessions are stored in memory and lost on restart
-- For production, set `TOKEN_STORE=firestore` and `JWT_SIGNING_KEY` for persistent auth across deploys and cold starts
+- For production, set `TOKEN_STORE=firestore` or `TOKEN_STORE=file` with `TOKEN_STORE_DIR` on a persistent volume, plus `JWT_SIGNING_KEY`, for persistent auth across deploys and cold starts
 - On serverless platforms (Cloud Run, etc.), set `MCP_STATELESS=true` — MCP sessions are held in memory, so scale-to-zero wipes them. Stateless mode disables session tracking entirely; each request authenticates independently via the JWT/Firestore token flow
 - `ALLOWED_DOMAINS` restricts access to specific Google Workspace domains
 - Access tokens refresh automatically; inactive sessions expire after 30 days
