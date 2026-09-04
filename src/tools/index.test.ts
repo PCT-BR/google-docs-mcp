@@ -97,6 +97,9 @@ describe('registerAllTools', () => {
     expect(toolNames).toContain('getDocumentPageFormat');
     expect(toolNames).toContain('setDocumentPageFormat');
     expect(toolNames).toContain('listDocumentSuggestions');
+    expect(toolNames).toContain('listDocumentImages');
+    expect(toolNames).toContain('replaceDocumentImage');
+    expect(toolNames).toContain('deletePositionedObject');
   });
 
   it('exposes advanced Sheets layout tools with the sheets group', () => {

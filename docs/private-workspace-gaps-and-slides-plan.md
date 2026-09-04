@@ -18,7 +18,7 @@ Target deployment: private personal Google account on Railway, without Firestore
 | ------ | ----------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------- |
 | Docs   | Read suggestions and accepted/rejected previews       | Stable                                                       | Implemented first pass                                        |
 | Docs   | Create, accept, reject, or delete suggestions         | Developer Preview                                            | Feature flag; do not require for private free account         |
-| Docs   | Replace images and delete positioned objects          | Stable                                                       | Implement normally                                            |
+| Docs   | Replace images and delete positioned objects          | Stable                                                       | Implemented first pass                                        |
 | Docs   | Rich content in header/footer/footnote segments       | Stable with segment constraints                              | Refactor Markdown targeting and reject unsupported constructs |
 | Drive  | Revisions and historical exports                      | Stable, but history may be incomplete                        | Implemented first pass with explicit limitations              |
 | Drive  | Generic comments and anchors                          | Stable, but editor apps display custom anchors as unanchored | Implement generic file tools; keep honest descriptions        |

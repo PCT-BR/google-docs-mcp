@@ -25,7 +25,7 @@ Use `mcp__google_docs_mcp` Docs tools for personal Google Docs. Use Drive tools 
 - Styling: `batchApplyTextStyle`, `applyParagraphStyle`.
 - Tabs: `listTabs`, `addTab`, `renameTab`.
 - Tables: `insertTable`, `insertTableWithData`, `listDocumentTables`, `getTableStructure`, `replaceTableRowData`, `deleteTableRows`, `updateTableCellStyle`, `updateTableBorders`, `updateTableColumnWidth`, `updateTableRowStyle`, `cloneTable`.
-- Rich elements: `insertImage`, `insertDateChip`, `insertPerson`, `insertRichLink`, `insertPageBreak`, `insertSectionBreak`, `updateSectionStyle`.
+- Rich elements: `insertImage`, `listDocumentImages`, `replaceDocumentImage`, `deletePositionedObject`, `insertDateChip`, `insertPerson`, `insertRichLink`, `insertPageBreak`, `insertSectionBreak`, `updateSectionStyle`.
 - Headers/footers: `listHeadersFooters`, `createHeader`, `createFooter`, `insertHeaderFooterText`, `deleteHeader`, `deleteFooter`.
 - Footnotes: `insertFootnote`, `listFootnotes`, `insertFootnoteText`.
 - Named ranges/templates: `createNamedRange`, `listNamedRanges`, `deleteNamedRange`, `replaceNamedRange`.
@@ -48,4 +48,4 @@ When creating, renaming, moving, or substantially updating a user-facing Doc, up
 
 ## Known Gaps
 
-This MCP still does not expose suggestion/tracked-change write actions, positioned object replacement, or full Markdown insertion inside header/footer/footnote segments. Suggestion write actions require Google Developer Preview support.
+This MCP still does not expose suggestion/tracked-change write actions or full Markdown insertion inside header/footer/footnote segments. Suggestion write actions require Google Developer Preview support.
